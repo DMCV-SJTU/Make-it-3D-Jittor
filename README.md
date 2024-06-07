@@ -49,7 +49,6 @@ Install with pip:
     pip install git+https://github.com/openai/CLIP.git
     pip install git+https://github.com/huggingface/diffusers.git
     pip install git+https://github.com/huggingface/huggingface_hub.git
-    pip install git+https://github.com/S-aiueo32/contextual_loss_pytorch.git
 ```
 Other dependencies:
 ```
