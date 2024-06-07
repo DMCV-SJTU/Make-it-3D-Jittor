@@ -46,7 +46,6 @@ Install with pip:
     pip install git+https://github.com/JittorRepos/jtorch
     pip install git+https://github.com/JittorRepos/diffusers_jittor
     pip install git+https://github.com/JittorRepos/transformers_jittor
-    pip install git+https://github.com/NVlabs/tiny-cuda-nn/#subdirectory=bindings/torch
     pip install git+https://github.com/openai/CLIP.git
     pip install git+https://github.com/huggingface/diffusers.git
     pip install git+https://github.com/huggingface/huggingface_hub.git
