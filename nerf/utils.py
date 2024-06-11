@@ -25,13 +25,14 @@ from nerf.refine_utils import *
 from nerf.unet import UNet
 import mcubes
 from rich.console import Console
+
 # from torch_ema import ExponentialMovingAverage
 
 jt.flags.use_cuda = 1
 
 # import clip
 import jittor.transform as T
-import contextual_loss as cl
+from contextual_loss.contextual import ContextualLoss
 from packaging import version as pver
 from copy import deepcopy
 # from nerf.provider import NeRFDataset
@@ -55,7 +56,6 @@ class Normalize(nn.Module):
         self.std = self.std.view(1, 3, 1, 1)
 
     def execute(self, img):
-
         return (img - self.mean) / self.std
 
 
@@ -73,14 +73,11 @@ class CosineSimilarity(nn.Module):
     def cosine_similarity(self, x1, x2, dim, eps):
         dot_product = (x1 * x2).sum()
 
-        # 计算两个向量的欧几里得范数
         norm_x1 = jt.norm(x1, p=2)
         norm_x2 = jt.norm(x2, p=2)
 
-        # 应用max函数避免除以零
         denominator = max(norm_x1, eps) * max(norm_x2, eps)
 
-        # 计算相似度
         similarity_value = dot_product / denominator
 
         return similarity_value
@@ -125,31 +122,31 @@ def get_rays(poses, intrinsics, H, W, N=-1, error_map=None):
     B = poses.shape[0]
     fx, fy, cx, cy = intrinsics
 
-    i, j = custom_meshgrid(jt.linspace(0, W-1, W), jt.linspace(0, H-1, H))
-    i = i.t().reshape([1, H*W]).expand([B, H*W]) + 0.5
-    j = j.t().reshape([1, H*W]).expand([B, H*W]) + 0.5
+    i, j = custom_meshgrid(jt.linspace(0, W - 1, W), jt.linspace(0, H - 1, H))
+    i = i.t().reshape([1, H * W]).expand([B, H * W]) + 0.5
+    j = j.t().reshape([1, H * W]).expand([B, H * W]) + 0.5
 
     results = {}
 
     if N > 0:
-        N = min(N, H*W)
+        N = min(N, H * W)
 
         if error_map is None:
-            inds = jt.randint(0, H*W, size=[N]) # may duplicate
+            inds = jt.randint(0, H * W, size=[N])  # may duplicate
             inds = inds.expand([B, N])
         else:
 
             # weighted sample on a low-reso grid
-            inds_coarse = jt.multinomial(error_map, N, replacement=False) # [B, N], but in [0, 128*128)
+            inds_coarse = jt.multinomial(error_map, N, replacement=False)  # [B, N], but in [0, 128*128)
 
             # map to the original resolution with random perturb.
-            inds_x, inds_y = inds_coarse // 128, inds_coarse % 128 # `//` will throw a warning in torch 1.10... anyway.
+            inds_x, inds_y = inds_coarse // 128, inds_coarse % 128  # `//` will throw a warning in torch 1.10... anyway.
             sx, sy = H / 128, W / 128
             inds_x = (inds_x * sx + jt.rand(B, N) * sx).long().clamp(max=H - 1)
             inds_y = (inds_y * sy + jt.rand(B, N) * sy).long().clamp(max=W - 1)
             inds = inds_x * W + inds_y
 
-            results['inds_coarse'] = inds_coarse # need this when updating error_map
+            results['inds_coarse'] = inds_coarse  # need this when updating error_map
 
         i = jt.gather(i, -1, inds)
         j = jt.gather(j, -1, inds)
@@ -157,7 +154,7 @@ def get_rays(poses, intrinsics, H, W, N=-1, error_map=None):
         results['inds'] = inds
 
     else:
-        inds = jt.arange(H*W).expand([B, H*W])
+        inds = jt.arange(H * W).expand([B, H * W])
 
     zs = jt.ones_like(i)
     xs = (i - cx) / fx * zs
@@ -166,9 +163,9 @@ def get_rays(poses, intrinsics, H, W, N=-1, error_map=None):
     scale = 1 / directions.pow(2).sum(-1).pow(0.5)
 
     directions = safe_normalize(directions)
-    rays_d = directions @ poses[:, :3, :3].transpose(-1, -2) # (B, N, 3)
-    rays_o = poses[..., :3, 3] # [B, 3]
-    rays_o = rays_o[..., None, :].expand_as(rays_d) # [B, N, 3]
+    rays_d = directions @ poses[:, :3, :3].transpose(-1, -2)  # (B, N, 3)
+    rays_o = poses[..., :3, 3]  # [B, 3]
+    rays_o = rays_o[..., None, :].expand_as(rays_d)  # [B, N, 3]
 
     results['rays_o'] = rays_o
     results['rays_d'] = rays_d
@@ -186,22 +183,23 @@ def torch_vis_2d(x, renormalize=False):
     # x: [3, H, W] or [1, H, W] or [H, W]
     import matplotlib.pyplot as plt
     import numpy as np
-    
+
     if isinstance(x, jt.array):
         if len(x.shape) == 3:
-            x = x.permute(1,2,0).squeeze()
+            x = x.permute(1, 2, 0).squeeze()
         x = x.detach().cpu().numpy()
-        
+
     print(f'[torch_vis_2d] {x.shape}, {x.dtype}, {x.min()} ~ {x.max()}')
-    
+
     x = x.astype(np.float32)
-    
+
     # renormalize
     if renormalize:
         x = (x - x.min(axis=0, keepdims=True)) / (x.max(axis=0, keepdims=True) - x.min(axis=0, keepdims=True) + 1e-8)
 
     plt.imshow(x)
     plt.show()
+
 
 def linear_to_srgb(x):
     return jt.where(x < 0.0031308, 12.92 * x, 1.055 * x ** 0.41666 - 0.055)
@@ -210,6 +208,7 @@ def linear_to_srgb(x):
 def srgb_to_linear(x):
     return jt.where(x < 0.04045, x / 12.92, ((x + 0.055) / 1.055) ** 2.4)
 
+
 def extract_fields(bound_min, bound_max, resolution, query_func):
     N = 256
     X = jt.linspace(bound_min[0], bound_max[0], resolution).split(N)
@@ -217,68 +216,70 @@ def extract_fields(bound_min, bound_max, resolution, query_func):
     Z = jt.linspace(bound_min[2], bound_max[2], resolution).split(N)
 
     u = np.zeros([resolution, resolution, resolution], dtype=np.float32)
-    #with jt.no_grad():
+    # with jt.no_grad():
     for xi, xs in enumerate(X):
         for yi, ys in enumerate(Y):
             for zi, zs in enumerate(Z):
-                xx, yy, zz = jt.meshgrid(xs, ys, zs) # for torch < 1.10, should remove indexing='ij'
-                pts = jt.concat([xx.reshape(-1, 1), yy.reshape(-1, 1), zz.reshape(-1, 1)], dim=-1) # [1, N, 3]
-                val = query_func(pts).reshape(len(xs), len(ys), len(zs)) # [1, N, 1] --> [x, y, z]
-                u[xi * N: xi * N + len(xs), yi * N: yi * N + len(ys), zi * N: zi * N + len(zs)] = val.detach().cpu().numpy()
+                xx, yy, zz = jt.meshgrid(xs, ys, zs)  # for torch < 1.10, should remove indexing='ij'
+                pts = jt.concat([xx.reshape(-1, 1), yy.reshape(-1, 1), zz.reshape(-1, 1)], dim=-1)  # [1, N, 3]
+                val = query_func(pts).reshape(len(xs), len(ys), len(zs))  # [1, N, 1] --> [x, y, z]
+                u[xi * N: xi * N + len(xs), yi * N: yi * N + len(ys),
+                zi * N: zi * N + len(zs)] = val.detach().cpu().numpy()
                 del val
     return u
 
 
-def extract_geometry(bound_min, bound_max, resolution, threshold, query_func, use_sdf = False):
-    #print('threshold: {}'.format(threshold))
+def extract_geometry(bound_min, bound_max, resolution, threshold, query_func, use_sdf=False):
+    # print('threshold: {}'.format(threshold))
     u = extract_fields(bound_min, bound_max, resolution, query_func)
     if use_sdf:
-        u = - 1.0 *u
+        u = - 1.0 * u
 
-    #print(u.mean(), u.max(), u.min(), np.percentile(u, 50))
-    
+    # print(u.mean(), u.max(), u.min(), np.percentile(u, 50))
+
     vertices, triangles = mcubes.marching_cubes(u, threshold)
 
     b_max_np = bound_max.detach().cpu().numpy()
     b_min_np = bound_min.detach().cpu().numpy()
 
     vertices = vertices / (resolution - 1.0) * (b_max_np - b_min_np)[None, :] + b_min_np[None, :]
-    
+
     return vertices, triangles
 
 
 class Trainer(object):
-    def __init__(self, 
-                 name, # name of this experiment
-                 opt, # extra conf
-                 model, # network 
-                 depth_model, # depth model
-                 guidance, # guidance network
-                 ref_imgs, 
-                 ref_depth, 
+    def __init__(self,
+                 name,  # name of this experiment
+                 opt,  # extra conf
+                 model,  # network
+                 depth_model,  # depth model
+                 guidance,  # guidance network
+                 ref_imgs,
+                 ref_depth,
                  ref_mask,
                  ori_imgs=None,
-                 criterion=None, # loss function, if None, assume inline implementation in train_step
-                 optimizer=None, # optimizer
-                 ema_decay=None, # if use EMA, set the decay
-                 lr_scheduler=None, # scheduler
-                 metrics=[], # metrics for evaluation, if None, use val_loss to measure performance, else use the first metric.
-                 local_rank=0, # which GPU am I
-                 world_size=1, # total num of GPUs
-                 device=None, # device to use, usually setting to None is OK. (auto choose device)
-                 mute=False, # whether to mute all print
-                 fp16=False, # amp optimize level
-                 eval_interval=1, # eval once every $ epoch
-                 max_keep_ckpt=2, # max num of saved ckpts in disk
-                 workspace='workspace', # workspace to save logs & ckpts
-                 best_mode='min', # the smaller/larger result, the better
-                 use_loss_as_metric=True, # use loss as the first metric
-                 report_metric_at_train=False, # also report metrics at training
-                 use_checkpoint="latest", # which ckpt to use at init time
-                 use_tensorboardX=True, # whether to use tensorboard for logging
-                 scheduler_update_every_step=False, # whether to call scheduler.step() after every train step
+                 criterion=None,  # loss function, if None, assume inline implementation in train_step
+                 optimizer=None,  # optimizer
+                 ema_decay=None,  # if use EMA, set the decay
+                 lr_scheduler=None,  # scheduler
+                 metrics=[],
+                 # metrics for evaluation, if None, use val_loss to measure performance, else use the first metric.
+                 local_rank=0,  # which GPU am I
+                 world_size=1,  # total num of GPUs
+                 device=None,  # device to use, usually setting to None is OK. (auto choose device)
+                 mute=False,  # whether to mute all print
+                 fp16=False,  # amp optimize level
+                 eval_interval=1,  # eval once every $ epoch
+                 max_keep_ckpt=2,  # max num of saved ckpts in disk
+                 workspace='workspace',  # workspace to save logs & ckpts
+                 best_mode='min',  # the smaller/larger result, the better
+                 use_loss_as_metric=True,  # use loss as the first metric
+                 report_metric_at_train=False,  # also report metrics at training
+                 use_checkpoint="latest",  # which ckpt to use at init time
+                 use_tensorboardX=True,  # whether to use tensorboard for logging
+                 scheduler_update_every_step=False,  # whether to call scheduler.step() after every train step
                  ):
-        
+
         self.name = name
         self.opt = opt
         self.mute = mute
@@ -327,27 +328,30 @@ class Trainer(object):
 
         # text prompt
         if self.guidance is not None:
-            
+
             for p in self.guidance.parameters():
                 p.requires_grad = False
 
             self.prepare_text_embeddings()
-        
+
         else:
             self.text_z = None
-    
+
         if isinstance(criterion, nn.Module):
             criterion.to(self.device)
         self.criterion = criterion
-        
 
         if optimizer is None:
-            self.optimizer = optim.Adam(self.model.parameters(), lr=0.001, weight_decay=5e-4) # naive adam
+            self.optimizer = optim.Adam(self.model.parameters(), lr=0.001, weight_decay=5e-4)  # naive adam
         else:
             self.optimizer = optimizer(self.model)
-        self.optimizer = jt.nn.Adam(self.model.parameters(), lr=0.002)
+        params=[
+            {'params':self.model.sigma_net.parameters(),'lr':0.001},
+            {'params': self.model.encoder.parameters(), 'lr': 0.01},
+        ]
+        self.optimizer = jt.nn.Adam(params,lr=0.005)
         if lr_scheduler is None:
-            self.lr_scheduler = optim.LambdaLR(self.optimizer, lr_lambda=lambda epoch: 1) # fake scheduler
+            self.lr_scheduler = optim.LambdaLR(self.optimizer, lr_lambda=lambda epoch: 1)  # fake scheduler
         else:
             self.lr_scheduler = lr_scheduler(self.optimizer)
 
@@ -363,8 +367,8 @@ class Trainer(object):
         self.stats = {
             "loss": [],
             "valid_loss": [],
-            "results": [], # metrics[0], or valid_loss
-            "checkpoints": [], # record path of saved ckpt, to automatically remove old ckpt
+            "results": [],  # metrics[0], or valid_loss
+            "checkpoints": [],  # record path of saved ckpt, to automatically remove old ckpt
             "best_result": None,
         }
 
@@ -379,9 +383,9 @@ class Trainer(object):
 
         # workspace prepare
         self.log_ptr = None
-       
+
         if self.workspace is not None:
-            os.makedirs(self.workspace, exist_ok=True)        
+            os.makedirs(self.workspace, exist_ok=True)
             self.log_path = os.path.join(workspace, f"log_{self.name}.txt")
             self.log_ptr = open(self.log_path, "a+")
 
@@ -389,10 +393,11 @@ class Trainer(object):
             self.best_path = f"{self.ckpt_path}/{self.name}.pth"
             self.img_path = os.path.join(self.workspace, 'train')
             os.makedirs(self.img_path, exist_ok=True)
-            
+
             os.makedirs(self.ckpt_path, exist_ok=True)
-            
-        self.log(f'[INFO] Trainer: {self.name} | {self.time_stamp} | {self.device} | {"fp16" if self.fp16 else "fp32"} | {self.workspace}')
+
+        self.log(
+            f'[INFO] Trainer: {self.name} | {self.time_stamp} | {self.device} | {"fp16" if self.fp16 else "fp32"} | {self.workspace}')
         self.log(f'[INFO] #parameters: {sum([p.numel() for p in model.parameters() if p.requires_grad])}')
 
         if self.workspace is not None:
@@ -411,10 +416,11 @@ class Trainer(object):
                 else:
                     self.log(f"[INFO] {self.best_path} not found, loading latest ...")
                     self.load_checkpoint()
-            else: # path to ckpt
+            else:  # path to ckpt
                 self.log(f"[INFO] Loading {self.use_checkpoint} ...")
                 self.load_checkpoint(self.use_checkpoint)
         self.pearson = PearsonSimilarity()
+
     # calculate the text embs.
     def prepare_text_embeddings(self):
 
@@ -427,13 +433,13 @@ class Trainer(object):
         self.text_z = []
         self.text.append(self.opt.text)
         self.text_z.append(self.guidance.get_text_embeds([self.opt.text], [self.opt.negative]))
-        
+
         # # white background
         # white_text = f"{self.opt.text}, white background"
         # self.text.append(white_text)
         # white_text_z = self.guidance.get_text_embeds([white_text], [self.opt.negative])
         # self.text_z.append(white_text_z)
-        
+
         if self.opt.need_back:
             text = f"{self.opt.text}, back view"
             negative_text = f"{self.opt.negative}"
@@ -449,22 +455,21 @@ class Trainer(object):
 
         print(self.text)
 
-
     def log(self, *args, **kwargs):
         if self.local_rank == 0:
-            if not self.mute: 
-                #print(*args)
+            if not self.mute:
+                # print(*args)
                 self.console.print(*args, **kwargs)
-            if self.log_ptr: 
+            if self.log_ptr:
                 print(*args, file=self.log_ptr)
-                self.log_ptr.flush() # write immediately to file
+                self.log_ptr.flush()  # write immediately to file
 
     def img_loss(self, rgb1, rgb2):
         # l2_loss = jt.sum(jt.sqrt(1e-8 + jt.sum((rgb1 - rgb2) ** 2, dim=1, keepdims=True)))
         # return l2_loss
         l1_loss = nn.L1Loss()(rgb1, rgb2)
         return l1_loss
-        
+
     def depth_loss(self, pearson, pred_depth, depth_gt, mask):
         # l2_loss = jt.sum(jt.sqrt(1e-8 + jt.sum((pred_depth*mask - depth_gt*mask) ** 2, dim=1, keepdims=True)))
         # return l2_loss
@@ -473,7 +478,7 @@ class Trainer(object):
         depth_gt = depth_gt.squeeze().reshape(-1)
         mask = mask.squeeze().reshape(-1)
         pred_depth = pred_depth.reshape(-1)
-        mask = (mask==1)
+        mask = (mask == 1)
         co = pearson(pred_depth[mask], depth_gt[mask])
         return 1 - co
 
@@ -487,9 +492,6 @@ class Trainer(object):
         image_z_1 = (image_z_1 / image_z_1.norm(dim=(- 1), keepdim=True))
         image_z_2 = (image_z_2 / image_z_2.norm(dim=(- 1), keepdim=True))
         loss = (- (image_z_1 * image_z_2).sum((- 1)).mean())
-        # print(loss)
-        # sys.exit()
-        print("aaa")
         return loss
 
     def img_text_clip_loss(self, rgb, prompt):
@@ -498,39 +500,41 @@ class Trainer(object):
         image_z_1 = self.image_encoder(rgb)[0]
         image_z_1 = (image_z_1 / image_z_1.norm(dim=(- 1), keepdim=True))
         text = self.tokenizer(prompt, padding='max_length', max_length=self.tokenizer.model_max_length,
-                         return_tensors='pt')  # .to(self.device)
+                              return_tensors='pt')  # .to(self.device)
         text_z = self.clip_text_model(text.input_ids)[0]
         text_z = (text_z / text_z.norm(dim=(- 1), keepdim=True))
         loss = (- (image_z_1 * text_z).sum((- 1)).mean())
         return loss
-    
+
     def img_cx_loss(self, cx_model, rgb1, rgb2):
         loss = cx_model(rgb1, rgb2)
         return loss
-    
-    ### ------------------------------	
+
+    ### ------------------------------
 
     def train_step(self, data):
 
-        rays_o = data['rays_o'] # [B, N, 3]
-        rays_d = data['rays_d'] # [B, N, 3]
+        rays_o = data['rays_o']  # [B, N, 3]
+        rays_d = data['rays_d']  # [B, N, 3]
         depth_scale = data['depth_scale']
 
         B, N = rays_o.shape[:2]
         H, W = data['H'], data['W']
         # print(data['is_front'])
+        self.opt.albedo_iters=1000000
+        self.opt.diff_iters=4000
         if self.global_step < self.opt.albedo_iters or data['is_front']:
             shading = 'albedo'
             ambient_ratio = 1.0
-        else: 
+        else:
             rand = random.random()
-            if rand > 0.5: 
+            if rand > 0.5:
                 shading = 'albedo'
                 ambient_ratio = 1.0
-            elif rand > 0.4: 
+            elif rand > 0.4:
                 shading = 'textureless'
                 ambient_ratio = 0.1
-            else: 
+            else:
                 shading = 'lambertian'
                 ambient_ratio = 0.1
 
@@ -540,40 +544,38 @@ class Trainer(object):
             verbose = False
 
         ref_imgs = self.ref_imgs
-        bg_color = jt.rand(3) # [3], frame-wise random.
+        bg_color = jt.rand(3)  # [3], frame-wise random.
         bg_img = bg_color.expand(1, 512, 512, 3).permute(0, 3, 1, 2).contiguous()
         gt_rgb = ref_imgs[:, :3, :, :] * ref_imgs[:, 3:, :, :] + bg_img * (1 - ref_imgs[:, 3:, :, :])
 
         # _t = time.time()
-        outputs = self.model.render(rays_o, rays_d, depth_scale=depth_scale, 
-                            bg_color=bg_color, staged=False, perturb=True, ambient_ratio=ambient_ratio, 
-                            shading=shading, force_all_rays=True, **vars(self.opt))
-        pred_rgb = outputs['image'].reshape(B, H, W, 3).permute(0, 3, 1, 2).contiguous() # [1, 3, H, W]
-        pred_depth = outputs['depth'].reshape(B, H, W, 1).permute(0, 3, 1, 2).contiguous() # [1, 1, H, W]
+        outputs = self.model.render(rays_o, rays_d, depth_scale=depth_scale,
+                                    bg_color=bg_color, staged=False, perturb=True, ambient_ratio=ambient_ratio,
+                                    shading=shading, force_all_rays=True, **vars(self.opt))
+        pred_rgb = outputs['image'].reshape(B, H, W, 3).permute(0, 3, 1, 2).contiguous()  # [1, 3, H, W]
+        pred_depth = outputs['depth'].reshape(B, H, W, 1).permute(0, 3, 1, 2).contiguous()  # [1, 1, H, W]
         pred_ws = outputs['weights_sum'].reshape(B, 1, H, W)
-
         if data['is_large']:
             text_z = self.text_z[1]
             text = self.text[1]
         else:
             text_z = self.text_z[0]
             text = self.text[0]
-        #print(data['is_front'])
         if self.global_step < self.opt.diff_iters or data['is_front']:
             loss = 0
             de_imgs = None
         else:
             loss, de_imgs = self.guidance.train_step(text_z, pred_rgb, clip_text_model=self.clip_text_model,
-                                                 image_encoder=self.image_encoder,
-                                                 tokenizer=self.tokenizer, ref_text=text, islarge=data['is_large'],
-                                                 ref_rgb=gt_rgb, guidance_scale=self.opt.guidance_scale)
+                                                     image_encoder=self.image_encoder,
+                                                     tokenizer=self.tokenizer, ref_text=text, islarge=data['is_large'],
+                                                     ref_rgb=gt_rgb, guidance_scale=self.opt.guidance_scale)
         if self.opt.lambda_opacity > 0:
             loss_opacity = (pred_ws ** 2).mean()
             if data['is_large']:
                 loss = loss + self.opt.lambda_opacity * loss_opacity * 10
             else:
                 loss = loss + self.opt.lambda_opacity * loss_opacity
-
+        #
         if self.opt.lambda_entropy > 0:
             alphas = (pred_ws).clamp(1e-5, 1 - 1e-5)
             # alphas = alphas ** 2 # skewed entropy, favors 0 over 1
@@ -582,7 +584,7 @@ class Trainer(object):
                 loss = loss + self.opt.lambda_entropy * loss_entropy
             else:
                 loss = loss + self.opt.lambda_entropy * loss_entropy * 10
-
+        verbose=False
         if verbose:
             print(f"loss_entropy: {loss_entropy}, loss_opacity: {loss_opacity}")
 
@@ -600,57 +602,57 @@ class Trainer(object):
 
         pred_rgb = jt.nn.interpolate(pred_rgb, (512, 512), mode='bilinear', align_corners=True)
         pred_depth = jt.nn.interpolate(pred_depth, (512, 512), mode='bilinear', align_corners=True)
-        
         if data['is_front']:
             loss_ref = self.opt.lambda_img * self.img_loss(pred_rgb, gt_rgb)
-            loss_depth = self.opt.lambda_depth * self.depth_loss(self.pearson, pred_depth, self.depth_prediction, 1 - self.depth_mask)
+            loss_depth = self.opt.lambda_depth * self.depth_loss(self.pearson, pred_depth, self.depth_prediction,
+                                                                 1 - self.depth_mask)
             if verbose:
                 print(f"loss_depth: {loss_depth}, loss_img: {loss_ref}")
             loss_ref += loss_depth
 
         else:
-            loss_ref = self.opt.lambda_clip * self.img_clip_loss(pred_rgb, gt_rgb)+self.opt.lambda_clip * self.img_text_clip_loss(pred_rgb, text)
+            loss_ref = self.opt.lambda_clip * self.img_clip_loss(pred_rgb,
+                                                                 gt_rgb) + self.opt.lambda_clip * self.img_text_clip_loss(
+                pred_rgb, text)
 
         if self.global_step % 100 == 0 or self.global_step == 1:
-            jt.save_image(pred_rgb[0], os.path.join(self.img_path,  f'{self.global_step}.png'))
-            jt.save_image(gt_rgb[0], os.path.join(self.img_path,  f'{self.global_step}_gt.png'))
-            jt.save_image(pred_depth[0].repeat(3,1,1), os.path.join(self.img_path,  f'{self.global_step}_depth.png'))
-            jt.save_image((self.depth_prediction * (1-self.depth_mask))[0].repeat(3,1,1), os.path.join(self.img_path,  f'{self.global_step}_ref_depth_mask.png'))
+            jt.save_image(pred_rgb[0], os.path.join(self.img_path, f'{self.global_step}.png'))
+            jt.save_image(gt_rgb[0], os.path.join(self.img_path, f'{self.global_step}_gt.png'))
+            jt.save_image(pred_depth[0].repeat(3, 1, 1), os.path.join(self.img_path, f'{self.global_step}_depth.png'))
+            jt.save_image((self.depth_prediction * (1 - self.depth_mask))[0].repeat(3, 1, 1),
+                          os.path.join(self.img_path, f'{self.global_step}_ref_depth_mask.png'))
             if de_imgs is not None:
-                jt.save_image(de_imgs[0], os.path.join(self.img_path,  f'{self.global_step}_denoise.png'))
-        
-        loss = loss + loss_ref   # loss_depth = 0.01 * self.opt.lambda_img * (self.img_loss(pred_depth, self.depth_prediction) + 1e-2)
+                jt.save_image(de_imgs[0], os.path.join(self.img_path, f'{self.global_step}_denoise.png'))
 
-
+        loss = loss + loss_ref  # loss_depth = 0.01 * self.opt.lambda_img * (self.img_loss(pred_depth, self.depth_prediction) + 1e-2)
 
         return pred_rgb, pred_ws, loss
 
     def eval_step(self, data):
 
-        rays_o = data['rays_o'] # [B, N, 3]
-        rays_d = data['rays_d'] # [B, N, 3]
+        rays_o = data['rays_o']  # [B, N, 3]
+        rays_d = data['rays_d']  # [B, N, 3]
         depth_scale = data['depth_scale']
 
         B, N = rays_o.shape[:2]
         H, W = data['H'], data['W']
-
         shading = data['shading'] if 'shading' in data else 'albedo'
         ambient_ratio = data['ambient_ratio'] if 'ambient_ratio' in data else 1.0
         light_d = data['light_d'] if 'light_d' in data else None
 
-        outputs = self.model.render(rays_o, rays_d, staged=True, perturb=False, bg_color=None, light_d=light_d, ambient_ratio=ambient_ratio, shading=shading, force_all_rays=True, **vars(self.opt))
+        outputs = self.model.render(rays_o, rays_d, staged=True, perturb=False, bg_color=None, light_d=light_d,
+                                    ambient_ratio=ambient_ratio, shading=shading, force_all_rays=True, **vars(self.opt))
         pred_rgb = outputs['image'].reshape(B, H, W, 3)
         pred_depth = outputs['depth'].reshape(B, H, W)
         loss = 0.0
 
         return pred_rgb, pred_depth, loss
 
-    def test_step(self, data, bg_color=None, perturb=False):  
+    def test_step(self, data, bg_color=None, perturb=False):
 
-        rays_o = data['rays_o'] # [B, N, 3]
-        rays_d = data['rays_d'] # [B, N, 3]
+        rays_o = data['rays_o']  # [B, N, 3]
+        rays_d = data['rays_d']  # [B, N, 3]
         depth_scale = data['depth_scale']
-
 
         B, N = rays_o.shape[:2]
         H, W = data['H'], data['W']
@@ -658,13 +660,15 @@ class Trainer(object):
         if bg_color is not None:
             bg_color = bg_color.to(rays_o.device)
         else:
-            bg_color = jt.ones(3) # [3]
+            bg_color = jt.ones(3)  # [3]
 
         shading = data['shading'] if 'shading' in data else 'albedo'
         ambient_ratio = data['ambient_ratio'] if 'ambient_ratio' in data else 1.0
         light_d = data['light_d'] if 'light_d' in data else None
 
-        outputs = self.model.render(rays_o, rays_d, depth_scale=depth_scale, staged=True, perturb=perturb, light_d=light_d, ambient_ratio=ambient_ratio, shading=shading, force_all_rays=True, bg_color=bg_color, **vars(self.opt))
+        outputs = self.model.render(rays_o, rays_d, depth_scale=depth_scale, staged=True, perturb=perturb,
+                                    light_d=light_d, ambient_ratio=ambient_ratio, shading=shading, force_all_rays=True,
+                                    bg_color=bg_color, **vars(self.opt))
 
         pred_rgb = outputs['image'].reshape(B, H, W, 3)
         pred_depth = outputs['depth'].reshape(B, H, W)
@@ -674,7 +678,6 @@ class Trainer(object):
             return pred_rgb, pred_depth, pred_mask, pred_normal
         else:
             return pred_rgb, pred_depth, pred_mask, None
-
 
     def save_mesh(self, save_path=None, resolution=128):
 
@@ -694,24 +697,26 @@ class Trainer(object):
     def train(self, train_loader, valid_loader, max_epochs):
 
         assert self.text_z is not None, 'Training must provide a text prompt!'
-        
+
         '''if self.use_tensorboardX and self.local_rank == 0:
             self.writer = tensorboardX.SummaryWriter(os.path.join(self.workspace, "run", self.name))'''
 
         start_t = time.time()
-        
-        for epoch in range(self.epoch + 1, max_epochs + 1):
-            self.epoch = epoch
 
+        for epoch in range(self.epoch + 1, max_epochs + 1):
+
+            self.epoch = epoch
             self.train_one_epoch(train_loader)
-            if self.epoch % self.eval_interval == 0:
-                self.evaluate_one_epoch(valid_loader)
-                self.save_checkpoint(full=False, best=False)
-                self.save_checkpoint(full=False, best=True)
+            # if self.epoch % self.eval_interval == 0:
+            #     self.test(valid_loader, write_video=True, write_image=False)
+                # self.evaluate_one_epoch(valid_loader)
+                # self.save_checkpoint(full=False, best=False)
+                # self.save_checkpoint(full=False, best=True)
+            self.save_checkpoint(full=False, best=False)  # syh: 怎么保存
 
         end_t = time.time()
 
-        self.log(f"[INFO] training takes {(end_t - start_t)/ 60:.4f} minutes.")
+        self.log(f"[INFO] training takes {(end_t - start_t) / 60:.4f} minutes.")
 
         if self.use_tensorboardX and self.local_rank == 0:
             self.writer.close()
@@ -730,10 +735,11 @@ class Trainer(object):
             name = f'{self.name}_ep{self.epoch:04d}'
 
         os.makedirs(save_path, exist_ok=True)
-        
+
         self.log(f"==> Start Test, save results to {save_path}")
 
-        pbar = tqdm.tqdm(total=len(loader) * loader.batch_size, bar_format='{percentage:3.0f}% {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]')
+        pbar = tqdm.tqdm(total=len(loader) * loader.batch_size,
+                         bar_format='{percentage:3.0f}% {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]')
         self.model.eval()
 
         if write_video:
@@ -744,9 +750,10 @@ class Trainer(object):
         all_poses = []
         with jt.no_grad():
             for i, data in enumerate(loader):
+                print("{}-------".format(i))
                 preds, preds_depth, preds_mask, preds_normal = self.test_step(data)
                 # print(preds_mask)
-                mask = (preds_mask>0.9).int()
+                mask = (preds_mask > 0.9).int()
 
                 mask = mask[0].detach().cpu().numpy()
                 mask = (mask * 255).astype(np.uint8)
@@ -757,7 +764,7 @@ class Trainer(object):
                 if preds_normal is not None:
                     preds_normal = preds_normal[0].detach().cpu().numpy()
                     preds_normal = (preds_normal * 255).astype(np.uint8)
-                
+
                 poses = data['poses']
                 pose = poses[0].detach().cpu().numpy()
                 all_poses.append(pose)
@@ -770,33 +777,41 @@ class Trainer(object):
                     if preds_normal is not None:
                         all_preds_normal.append(preds_normal)
                     all_preds_depth.append(pred_depth_cpu)
-                
+
                 pred_depth = preds_depth[0].detach().cpu().numpy()
                 pred_depth = (pred_depth * 1000.).astype(np.uint16)
 
                 if write_image:
-                    cv2.imwrite(os.path.join(save_path, f'{name}_{i:04d}_rgb.png'), cv2.cvtColor(pred, cv2.COLOR_RGB2BGR))
+                    cv2.imwrite(os.path.join(save_path, f'{name}_{i:04d}_rgb.png'),
+                                cv2.cvtColor(pred, cv2.COLOR_RGB2BGR))
                     if preds_normal is not None:
-                        cv2.imwrite(os.path.join(save_path, f'{name}_{i:04d}_normal.png'), cv2.cvtColor(preds_normal, cv2.COLOR_RGB2BGR))
+                        cv2.imwrite(os.path.join(save_path, f'{name}_{i:04d}_normal.png'),
+                                    cv2.cvtColor(preds_normal, cv2.COLOR_RGB2BGR))
                     cv2.imwrite(os.path.join(save_path, f'{name}_{i:04d}_depth.png'), pred_depth)
                     cv2.imwrite(os.path.join(save_path, f'{name}_{i:04d}_mask.png'), mask)
-                
+
                 pbar.update(loader.batch_size)
 
         if write_video:
             all_preds = np.stack(all_preds, axis=0)
+            print(all_preds.shape)
+            print(type(all_preds))
+            print(os.path.join(save_path, f'{name}_rgb.mp4'))
             all_preds_normal = np.stack(all_preds_normal, axis=0)
-            imageio.mimwrite(os.path.join(save_path, f'{name}_normal.mp4'), all_preds_normal, fps=25, quality=8, macro_block_size=1)
-            imageio.mimwrite(os.path.join(save_path, f'{name}_rgb.mp4'), all_preds, fps=25, quality=8, macro_block_size=1)
-        
+            # imageio.mimwrite(os.path.join(save_path, f'{name}_normal.mp4'), all_preds_normal, fps=25, quality=8,
+            #                  macro_block_size=1)
+            imageio.mimwrite(os.path.join(save_path, f'{name}_rgb.mp4'), all_preds, fps=25, quality=8,
+                             macro_block_size=1)
+            imageio.mimwrite(os.path.join(save_path, f'{name}_rgb.mp4'), all_preds, fps=25, quality=8,
+                             macro_block_size=1)
+
         all_poses = np.stack(all_poses, axis=0)
         np.save(os.path.join(save_path, f'{name}_poses.npy'), all_poses)
 
         self.log(f"==> Finished Test.")
-    
-    
+
     def refine(self, load_dir, train_iters, test_loader):
-        
+
         load_data_folder = load_dir
         outputdir = load_dir.replace("mvimg", "refine")  
         os.makedirs(outputdir,exist_ok=True)
@@ -856,35 +871,40 @@ class Trainer(object):
         os.makedirs(train_outputdir,exist_ok=True)
         
         radius = float(radius) / float(image_size[0]) * 2.0
-        unet = UNet(num_input_channels=3+16).to(device)
+        unet = UNet(num_input_channels=3+16)
         unet.train()
-        cx_model = cl.ContextualLoss(use_vgg=True, vgg_layer='relu5_4').to(device)
+        cx_model = ContextualLoss(use_vgg=True, vgg_layer='relu5_4')
         
-        vertices_cano = jt.array((vertices_cano), requires_grad=False)
-        vertices_novel = jt.array((vertices_novel), requires_grad=False)
-        vertices_color_cano = jt.array((vertices_color_cano), requires_grad=False)
+        vertices_cano = jt.array(vertices_cano)
+        vertices_cano.requires_grad = False
+        vertices_novel = jt.array(vertices_novel)
+        vertices_novel.requires_grad = False
+        vertices_color_cano = jt.array(vertices_color_cano)
+        vertices_color_cano.requires_grad = False
         
-        feat_cano = jt.nn.Parameter(jt.randn((vertices_color_cano.shape[0], 16), requires_grad=True))
-        vertices_color_cano = jt.nn.Parameter(jt.array((vertices_color_cano), requires_grad=True))
-        vertices_color_novel = jt.nn.Parameter(jt.array((vertices_color_novel), requires_grad=True))
-        feat_novel = jt.nn.Parameter(jt.randn((vertices_color_novel.shape[0], 16), requires_grad=True))
-        bg_feat = jt.nn.Parameter(jt.ones((1, 19, 1, 1), requires_grad=True))
+        feat_cano = jt.randn((vertices_color_cano.shape[0], 16))
+        vertices_color_cano = jt.array((vertices_color_cano))
+        vertices_color_novel = jt.array((vertices_color_novel))
+        feat_novel = jt.randn((vertices_color_novel.shape[0], 16))
+        bg_feat = jt.ones((1, 19, 1, 1))
         
         vertices_color_novel_origin = deepcopy(vertices_color_novel).to(device)
         vertices_color_novel_origin.requires_grad = False
         vertices_color_cano_origin = deepcopy(vertices_color_cano).to(device)
         vertices_color_cano_origin.requires_grad = False
         
-        params = [{'params': [vertices_color_novel], 'lr': 0.001}, \
-                {'params': [vertices_color_cano], 'lr': 0.001}, \
-                {'params': [feat_novel], 'lr': 0.001}, \
-                {'params': [feat_cano], 'lr': 0.001}, \
-                {'params': [bg_feat], 'lr': 0.001}, \
-                {'params': unet.parameters(), 'lr': 0.001}]
+        params = [{'params': [vertices_color_novel], 'grads': jt.zeros_like(vertices_color_novel)}, \
+                {'params': [vertices_color_cano], 'grads': jt.zeros_like(vertices_color_cano)}, \
+                {'params': [feat_novel], 'grads': jt.zeros_like(feat_novel)}, \
+                {'params': [feat_cano], 'grads': jt.zeros_like(feat_cano)}, \
+                {'params': [bg_feat], 'grads': jt.zeros_like(bg_feat)}]
         
-        point_optimizer = jt.optim.Adam(params, betas=(0.9, 0.99), eps=1e-15)
-        point_scheduler = jt.optim.LambdaLR(point_optimizer, lambda iter: 0.1 ** min(iter / 1000, 1))
+        for p in unet.parameters():
+            params.append({'params': p, 'grads': jt.zeros_like(p)})
+        
+        point_optimizer = jt.optim.Adam(params, 0.001, betas=(0.9, 0.99), eps=1e-15)
         max_pool = jt.nn.MaxPool2d(kernel_size=5, stride=1, padding=2)
+        
 
         pbar = tqdm.tqdm(range(train_iters))
         for i in pbar:
@@ -920,8 +940,8 @@ class Trainer(object):
             pred_mask_dilate = max_pool(pred_mask)
 
             if i % 50 == 0:
-                jt.save_image(pred_rgb, os.path.join(train_outputdir,  f'{i}.png'))
-                # save_image(pred_mask_dilate, os.path.join(train_outputdir,  f'{i}_mask.png'))
+                jt.save_image(pred_rgb[0], os.path.join(train_outputdir,  f'{i}.png'))
+                jt.save_image(pred_mask_dilate[0], os.path.join(train_outputdir,  f'{i}_mask.png'))
             
             if is_front:
                 clip_loss = 1000 * self.img_loss(pred_rgb*gt_mask, gt_rgb*gt_mask)
@@ -990,16 +1010,16 @@ class Trainer(object):
                 pred_list.append(pred_rgb)
             pred_rgb = unet(pred_list)
             transformed_src_alpha = np.array(pred_rgb[0].permute(1,2,0).detach().cpu().numpy() * 255,dtype=np.uint8)
-            jt.save_image(pred_rgb, img_outdir+f'/render_unet_{i:04d}.png')
+            jt.save_image(pred_rgb[0], img_outdir+f'/render_unet_{i:04d}.png')
             all_transformed_src_alpha.append(transformed_src_alpha)
             pbar.update(test_loader.batch_size)
         
         all_transformed_src_alpha = np.stack(all_transformed_src_alpha, axis=0)
         imageio.mimwrite(img_outdir+'/render_unet_img_clip.mp4', all_transformed_src_alpha, fps=25, quality=8, macro_block_size=1)
 
-
     def train_one_epoch(self, loader):
-        self.log(f"==> Start Training {self.workspace} Epoch {self.epoch}, lr={self.optimizer.param_groups[0]['lr']:.6f} ...")
+        self.log(
+            f"==> Start Training {self.workspace} Epoch {self.epoch}, lr={self.optimizer.param_groups[0]['lr']:.6f} ...")
 
         total_loss = 0
         if self.local_rank == 0 and self.report_metric_at_train:
@@ -1012,9 +1032,10 @@ class Trainer(object):
         # ref: https://pyjt.org/docs/stable/data.html
         if self.world_size > 1:
             loader.sampler.set_epoch(self.epoch)
-        
+
         if self.local_rank == 0:
-            pbar = tqdm.tqdm(total=len(loader) * loader.batch_size, bar_format='{desc}: {percentage:3.0f}% {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]')
+            pbar = tqdm.tqdm(total=len(loader) * loader.batch_size,
+                             bar_format='{desc}: {percentage:3.0f}% {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]')
 
         self.local_step = 0
 
@@ -1022,43 +1043,35 @@ class Trainer(object):
             # print(self.global_step, '--------------------------------')
             # if self.global_step>1:
             #     for name,param in self.model.named_parameters():
-            #         #if 'sigma_net' in name:
-            #         try:
-            #             print(name, param.mean(),param.opt_grad(self.optimizer).max())
-            #         except:
-            #             print('gggggggggggggggggg',name)
+            #         print(name,param.mean())
             # update grid every 16 steps
             if self.model.cuda_ray and self.global_step % self.opt.update_extra_interval == 0:
                 self.model.update_extra_state()
-                    
+
             self.local_step += 1
             self.global_step += 1
-
-
             pred_rgbs, pred_ws, loss = self.train_step(data)
-
             self.optimizer.backward(loss)
+            # print('end backward')
             self.optimizer.clip_grad_norm(max_norm=10)
             self.optimizer.step()
+            # if self.scheduler_update_every_step:
+            #     self.lr_scheduler.step()
 
-            if self.scheduler_update_every_step:
-                self.lr_scheduler.step()
-
-            loss_val = loss.item()
+            loss_val = loss.detach().item()
             total_loss += loss_val
-
             if self.local_rank == 0:
-
                 # if self.use_tensorboardX:
                 #     self.writer.add_scalar("train/loss", loss_val, self.global_step)
                 #     self.writer.add_scalar("train/lr", self.optimizer.param_groups[0]['lr'], self.global_step)
 
                 if self.scheduler_update_every_step:
-                    pbar.set_description(f"loss={loss_val:.4f} ({total_loss/self.local_step:.4f}), lr={self.optimizer.param_groups[0]['lr']:.6f}")
+                    pbar.set_description(
+                        f"loss={loss_val:.4f} ({total_loss / self.local_step:.4f}), lr={self.optimizer.param_groups[0]['lr']:.6f}")
                 else:
-                    pbar.set_description(f"loss={loss_val:.4f} ({total_loss/self.local_step:.4f})")
+                    pbar.set_description(f"loss={loss_val:.4f} ({total_loss / self.local_step:.4f})")
                 pbar.update(loader.batch_size)
-
+            # return
         if self.ema is not None:
             self.ema.update()
 
@@ -1082,7 +1095,6 @@ class Trainer(object):
 
         self.log(f"==> Finished Epoch {self.epoch}.")
 
-
     def evaluate_one_epoch(self, loader, name=None):
         self.log(f"++> Evaluate {self.workspace} at epoch {self.epoch} ...")
 
@@ -1101,12 +1113,13 @@ class Trainer(object):
             self.ema.copy_to()
 
         if self.local_rank == 0:
-            pbar = tqdm.tqdm(total=len(loader) * loader.batch_size, bar_format='{desc}: {percentage:3.0f}% {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]')
+            pbar = tqdm.tqdm(total=len(loader) * loader.batch_size,
+                             bar_format='{desc}: {percentage:3.0f}% {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]')
 
         self.local_step = 0
 
         with jt.no_grad():
-            for data in loader:    
+            for data in loader:
                 self.local_step += 1
                 preds, preds_depth, loss = self.eval_step(data)
                 # save image
@@ -1114,12 +1127,13 @@ class Trainer(object):
                 save_path_depth = os.path.join(self.workspace, 'validation', f'{name}_{self.local_step:04d}_depth.png')
 
                 os.makedirs(os.path.dirname(save_path), exist_ok=True)
-                pred_depth = preds_depth.reshape(1, self.opt.H, self.opt.W, 1).permute(0, 3, 1, 2).contiguous() # [1, 1, H, W]
-                preds = preds.reshape(1, self.opt.H, self.opt.W, 3).permute(0, 3, 1, 2).contiguous() # [1, 1, H, W]
+                pred_depth = preds_depth.reshape(1, self.opt.H, self.opt.W, 1).permute(0, 3, 1,
+                                                                                       2).contiguous()  # [1, 1, H, W]
+                preds = preds.reshape(1, self.opt.H, self.opt.W, 3).permute(0, 3, 1, 2).contiguous()  # [1, 1, H, W]
 
-                jt.save_image(pred_depth, save_path_depth)
-                jt.save_image(preds, save_path)
-            
+                jt.save_image(pred_depth[0], save_path_depth)
+                jt.save_image(preds[0], save_path)
+
                 pbar.update(loader.batch_size)
 
         if self.ema is not None:
@@ -1147,7 +1161,7 @@ class Trainer(object):
             state['lr_scheduler'] = self.lr_scheduler.state_dict()
             if self.ema is not None:
                 state['ema'] = self.ema.state_dict()
-        
+
         if not best:
 
             state['model'] = self.model.state_dict()
@@ -1155,13 +1169,14 @@ class Trainer(object):
             file_path = f"{name}.pth"
 
             self.stats["checkpoints"].append(file_path)
+            state['model']['density_bitfield'] = state['model']['density_bitfield'].float()  # syh: 方便保存
             jt.save(state, os.path.join(self.ckpt_path, file_path))
 
-        else:    
+        else:
             if len(self.stats["results"]) > 0:
                 # always save best since loss cannot reflect performance.
                 if True:
-                    # save ema results 
+                    # save ema results
                     if self.ema is not None:
                         self.ema.store()
                         self.ema.copy_to()
@@ -1170,11 +1185,11 @@ class Trainer(object):
 
                     if self.ema is not None:
                         self.ema.restore()
-                    
+
                     jt.save(state, self.best_path)
             else:
                 self.log(f"[WARN] no evaluated results found, skip saving best checkpoint.")
-            
+
     def load_checkpoint(self, checkpoint=None, model_only=False):
         if checkpoint is None:
             checkpoint_list = sorted(glob.glob(f'{self.ckpt_path}/*.pth'))
@@ -1184,20 +1199,15 @@ class Trainer(object):
             else:
                 self.log("[WARN] No checkpoint found, model randomly initialized.")
                 return
-
-        checkpoint_dict = jt.load(checkpoint, map_location=self.device)
+        checkpoint_dict = jt.load(checkpoint)
         if 'model' not in checkpoint_dict:
             self.model.load_state_dict(checkpoint_dict)
             self.log("[INFO] loaded model.")
             return
 
-        missing_keys, unexpected_keys = self.model.load_state_dict(checkpoint_dict['model'], strict=False)
-        self.log("[INFO] loaded model.")
-        if len(missing_keys) > 0:
-            self.log(f"[WARN] missing keys: {missing_keys}")
-        if len(unexpected_keys) > 0:
-            self.log(f"[WARN] unexpected keys: {unexpected_keys}")   
 
+        self.model.load_state_dict(checkpoint_dict['model'])
+        self.log("[INFO] loaded model.")
         if self.ema is not None and 'ema' in checkpoint_dict:
             try:
                 self.ema.load_state_dict(checkpoint_dict['ema'])
@@ -1217,18 +1227,17 @@ class Trainer(object):
         self.epoch = checkpoint_dict['epoch']
         self.global_step = checkpoint_dict['global_step']
         self.log(f"[INFO] load at epoch {self.epoch}, global step {self.global_step}")
-        
+
         if self.optimizer and 'optimizer' in checkpoint_dict:
             try:
                 self.optimizer.load_state_dict(checkpoint_dict['optimizer'])
                 self.log("[INFO] loaded optimizer.")
             except:
                 self.log("[WARN] Failed to load optimizer.")
-        
+
         if self.lr_scheduler and 'lr_scheduler' in checkpoint_dict:
             try:
                 self.lr_scheduler.load_state_dict(checkpoint_dict['lr_scheduler'])
                 self.log("[INFO] loaded scheduler.")
             except:
                 self.log("[WARN] Failed to load scheduler.")
-

@@ -1,4 +1,5 @@
 import jittor as jt
+import torch
 from jittor import init
 import jittor.transform as T
 from transformers import CLIPTextModel, CLIPTokenizer, logging, CLIPVisionModel, CLIPFeatureExtractor
@@ -19,16 +20,18 @@ def seed_everything(seed):
     torch.cuda.manual_seed(seed)
 
 
-class backward_fun(Function):
-    def execute(self, x, grad):
-        self.grad = grad
+class _backward_fun(Function):
+    def execute(self, x, grad0):
+        self.grad0 = grad0
         return jt.Var(1.0)
+        #return x.mean()
 
     def grad(self, g):
-        grad = self.grad
-        return g * (grad)
+        grad = self.grad0
+        return g * (grad), None
 
-backward_fun = backward_fun.apply
+
+backward_fun = _backward_fun.apply
 
 
 
@@ -77,6 +80,10 @@ class StableDiffusion(nn.Module):
         self.vae = AutoencoderKL.from_pretrained(model_key, subfolder='vae')# .to(self.device)
         self.tokenizer = CLIPTokenizer.from_pretrained(model_key, subfolder='tokenizer')
         self.text_encoder = CLIPTextModel.from_pretrained(model_key, subfolder='text_encoder')# .to(self.device)
+        # self.image_encoder = CLIPVisionModel.from_pretrained('/home/huteng/make-it-3d/Make-It-3D-convert/transformer_model')# .to(self.device)
+        # self.text_clip_encoder = CLIPVisionModel.from_pretrained('/home/huteng/make-it-3d/Make-It-3D-convert/transformer_model')# .to(self.device)
+        # self.processor = CLIPFeatureExtractor.from_pretrained('/home/huteng/make-it-3d/Make-It-3D-convert/transformer_model')
+        # self.aug = T.Compose([T.Resize((224, 224)), T.ImageNormalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711))])  # 这个T怎么处理？
         self.mean_img = [0.48145466, 0.4578275, 0.40821073]
         self.std_img = [0.26862954, 0.26130258, 0.27577711]
         self.normalize = Normalize(self.mean_img, self.std_img)
@@ -106,7 +113,6 @@ class StableDiffusion(nn.Module):
         return text_embeddings
 
 
-
     def img_clip_loss(self, image_encoder, rgb1, rgb2):
         rgb1 = nn.resize(rgb1, (224, 224))
         rgb1 = self.normalize(rgb1)
@@ -117,7 +123,6 @@ class StableDiffusion(nn.Module):
         image_z_1 = (image_z_1 / image_z_1.norm(dim=(- 1), keepdim=True))
         image_z_2 = (image_z_2 / image_z_2.norm(dim=(- 1), keepdim=True))
         loss = (- (image_z_1 * image_z_2).sum((- 1)).mean())
-        print("aaa")
         return loss
 
     def img_text_clip_loss(self, tokenizer, clip_text_model, image_encoder,rgb, prompt):
@@ -156,12 +161,7 @@ class StableDiffusion(nn.Module):
             w = (1 - self.alphas[t])
             grad = ((w * (noise_pred - noise)) * w_)
             imgs = None
-            # grad = torch.nan_to_num(grad)
-
-
             loss = backward_fun(latents, grad)
-            # latents.backward(gradient=grad, retain_graph=True)
-            # optimizer.backward(loss)
         return (loss, imgs)
 
     def produce_latents(self, text_embeddings, height=512, width=512, num_inference_steps=50, guidance_scale=7.5, latents=None):
@@ -206,29 +206,12 @@ class StableDiffusion(nn.Module):
 
 
 if (__name__ == '__main__'):
-    import argparse
-    import matplotlib.pyplot as plt
-    parser = argparse.ArgumentParser()
-    parser.add_argument('prompt', type=str)
-    parser.add_argument('--negative', default='', type=str)
-    parser.add_argument('--workspace', default='', type=str)
-    parser.add_argument('--sd_version', type=str, default='2.0', choices=['1.5', '2.0'], help='stable diffusion version')
-    parser.add_argument('-H', type=int, default=512)
-    parser.add_argument('-W', type=int, default=512)
-    parser.add_argument('--seeds', type=int, default=0)
-    parser.add_argument('--steps', type=int, default=50)
-    opt = parser.parse_args()
-    opt.workspace = os.path.join('test_bench', opt.workspace)
-    if (opt.workspace is not None):
-        os.makedirs(opt.workspace, exist_ok=True)
-    jt.flags.use_cuda = jt.has_cuda
-
-    # device = torch.device('cuda')
-    sd = StableDiffusion(opt.sd_version)
-    t_embed = sd.get_text_embeds('a teddy bear', '')
-    print(2)
-    print(t_embed.shape)
-    for seed in range(opt.seeds):
-        seed_everything(seed)
-        imgs = sd.prompt_to_img(opt.prompt, opt.negative, opt.H, opt.W, opt.steps, guidance_scale=7.5)
-        save_image(imgs, os.path.join(opt.workspace, (opt.prompt.replace(' ', '_') + f'_{seed}.png')))
+    x=jt.randn((6,6))
+    x.requires_grad=True
+    optim=jt.nn.Adam([x],lr=0.001)
+    for i in range(100):
+        loss=backward_fun(x)
+        optim.backward(loss)
+        print(x)
+        optim.clip_grad_norm(max_norm=10)
+        optim.step()
