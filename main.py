@@ -228,7 +228,6 @@ if __name__ == '__main__':
     depth_prediction = depth_prediction * (1 - depth_mask) + jt.ones_like(depth_prediction) * (depth_mask)
     depth_prediction=depth_prediction.float()
     rays_alive = jt.arange(10, dtype=jt.int32)  # [N]
-    depth_prediction=jt.randn_like(depth_prediction)
     # Todo:depth_prediction
     depth_prediction = ((depth_prediction - 1.0) / (depth_prediction.max() - 1.0)) * 0.9 + 0.1
     # save_image(ori_imgs, os.path.join(opt.workspace, opt.text.replace(" ", "_") + '_ref.png'))
