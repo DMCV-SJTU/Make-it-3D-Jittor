@@ -75,32 +75,31 @@ We use progressive training strategy to generate a full 360° 3D geometry. Run t
 Note that since we use the valina version of Nerf, the results will be slightly different from the pytorch version.
 
 ### Refine stage
-We have proposed two examples for refine stage. Before the refine stage training, you should download these examples into your worksapce. Make sure the 
+We have proposed two examples for refine stage. Before the refine stage training, you should download following examples into your workspace. Make sure the downloaded files are placed in the following directory structure: 
 ```
 project/
 │
 ├── results/
-│   ├── mvimg/
-│   │   ├── file1.png
-│   │   ├── file2.png
-│   │   ├── file3.png
-│   │   ├── file.png
-│   │   └── ...  
-│   │
+│   ├── yourworkspace/
+│   │    ├── mvimg/
+|   |       ├── df_epxxx_000_depth.png
+│   │       ├── df_epxxx_000_mask.png
+│   │       ├── df_epxxx_000_normal.png
+│   │       ├── df_epxxx_000_rgb.png
+│   │       └── ...  
+│   │    ├── refine/
 │   └── ...
 └── ...
 ```
 #### 1. Teddy bear 1
-```
-- 
-```
 You can easily refine this teddy bear texture as following guidance:
 ```
-    python main.py --workspace ${NAME} --ref_path "${IMGPATH}" --phi_range 0 90 --fovy_range 50 70 --fov 60 --refine --refine_iter 3000
+    python main.py --workspace ${NAME} --ref_path "demo/teddy_bear.png" --phi_range 0 90 --fovy_range 50 70 --fov 60 --refine --refine_iter 3000 --backbone vanilla --text ${PROMPT}
 ```
-The first example is the case of .
+#### 2. Teddy bear 2
+After downloading teddy bear 2 examples, you can easily refine this teddy bear texture as following guidance:
 ```
-   python main.py --workspace ${NAME} --ref_path "${IMGPATH}" --phi_range 135 225 --refine 
+    python main.py --workspace ${NAME} --ref_path "demo/teddy_bear2.png" --phi_range 135 225 --refine --refine_iter 3000 --backbone vanilla --text ${PROMPT}
 ```
 
 ## Important Note
