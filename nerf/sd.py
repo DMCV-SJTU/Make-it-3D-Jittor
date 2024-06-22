@@ -168,7 +168,6 @@ class StableDiffusion(nn.Module):
         if (latents is None):
             latents = jt.randn(((text_embeddings.shape[0] // 2), self.unet.in_channels, (height // 8), (width // 8)))
         self.scheduler.set_timesteps(num_inference_steps)
-        # with torch.autocast('cuda'):
         for (i, t) in enumerate(self.scheduler.timesteps):
             latent_model_input = jt.concat(([latents] * 2))
             with jt.no_grad():
