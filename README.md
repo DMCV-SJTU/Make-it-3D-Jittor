@@ -26,6 +26,7 @@ We provide [Jittor](https://github.com/Jittor/jittor) implementations for our pa
 
 ## Todo (Latest update: 2024/06/07)
 - [x] **Release coarse stage training code**
+- [X] **Release refine stage training code** 
 - [ ] **Release all training code (coarse + [refine stage](#refine-stage))**
 
 ## Demo of 360° geometry
@@ -73,7 +74,12 @@ We use progressive training strategy to generate a full 360° 3D geometry. Run t
 
 Note that since we use the valina version of Nerf, the results will be slightly different from the pytorch version.
 
-
+### Refine stage
+We have proposed two examples for refine stage. Before the refine stage training, you should download these examples into your worksapce. Now you can easily use the command --refine for refine stage training. We optimize the scene under frontal camera views.
+The first example is the case of .
+```
+   python main.py --workspace ${NAME} --ref_path "${IMGPATH}" --phi_range 135 225 --refine 
+```
 
 ## Important Note
 Hallucinating 3D geometry and generating novel views from a single image of general genre is a challenging task. While our method demonstrates strong capability on creating 3D from most images with a centered single object, it may still encounter difficulties in reconstructing solid geometry on complex cases. **If you encounter any bugs, please feel free to contact us.**
