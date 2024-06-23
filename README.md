@@ -116,7 +116,7 @@ Make-It-3D/
 #### Teddy bear
 You can easily refine this teddy bear texture as following guidance:
 ```
-    python main.py --workspace ${WORKSPACE_NAME} --ref_path "demo/teddy_bear.png" --phi_range 0 90 --fovy_range 50 70 --fov 60 --refine --refine_iter 3000 --backbone vanilla --text "a teddy bear"
+python main.py --workspace ${WORKSPACE_NAME} --ref_path "demo/teddy_bear.png" --phi_range 0 90 --fovy_range 50 70 --fov 60 --refine --refine_iter 3000 --backbone vanilla --text "a teddy bear"
 ```
 
 ## Important Note
