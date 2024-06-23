@@ -86,11 +86,11 @@ Training requirements
 ### Coarse stage
 We use progressive training strategy to generate a full 360° 3D geometry. Run the command and modify the workspace name `NAME`, the path of the reference image `IMGPATH` and the prompt `PROMPT` describing the image . We first optimize the scene under frontal camera views. 
 ```
-    python main.py --workspace ${NAME} --ref_path "${IMGPATH}" --phi_range 135 225 --iters 10000 --backbone vanilla --text ${PROMPT}
+python main.py --workspace ${NAME} --ref_path "${IMGPATH}" --phi_range 135 225 --iters 10000 --backbone vanilla --text ${PROMPT}
 ```
 For exeample, you can implement your command as:
 ```
-    python main.py --workspace teddy_bear2 --ref_path demo/teddy_bear2.png --phi_range 135 225 --iters 2000 --backbone vanilla --text "a teddy bear"
+python main.py --workspace teddy_bear2 --ref_path demo/teddy_bear2.png --phi_range 135 225 --iters 2000 --backbone vanilla --text "a teddy bear"
 ```
 Note that since we use the valina version of Nerf, the results will be slightly different from the pytorch version.
 
