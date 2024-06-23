@@ -20,3 +20,4 @@ open3d==0.9.0.0
 torchmetrics
 tensorboard
 torch-ema
+cupy
