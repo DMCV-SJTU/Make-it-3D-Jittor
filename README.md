@@ -89,7 +89,6 @@ Make-It-3D/
 │   │       ├── df_epxxx_000_mask.png
 │   │       ├── df_epxxx_000_normal.png
 │   │       ├── df_epxxx_000_rgb.png
-|   |       ├── df_epxxx_000_rgb.png
 |   |       ├── df_epxxx_poses.npy
 │   │       └── ...  
 │   │    ├── refine/
