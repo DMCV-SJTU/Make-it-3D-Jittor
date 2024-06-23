@@ -112,7 +112,7 @@ class UNet(nn.Module):
         elif (last_act == 'tanh'):
             self.final = nn.Sequential(self.final, nn.Tanh())
 
-    def execute(self, inputs,debug=False,**kwargs,):
+    def execute(self, inputs, **kwargs):
         masks = ([None] * len(inputs))
         in64 = self.start(inputs[0], mask=masks[0])
         mask = masks[1]

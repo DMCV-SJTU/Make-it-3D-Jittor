@@ -917,22 +917,16 @@ class Trainer(object):
             # Unet
             scale = 1
             pred_list = []
-            test_dict = {}
             for j in range(3):
                 h = H // scale
                 w = W // scale
                 image_size = (h, w)
                 K_ = np.array([[focal*w, 0, 0.5*w], [0, focal*h, 0.5*h], [0, 0, 1]])
                 K_ = jt.array((K_)).float()
-
                 pred_rgb = render_point(all_v, all_v_color, h, w, K_, world2cam, image_size, radius, ppp, bg_feat=bg_feat,debug=False)
-
-
-                test_dict.update({f"{j}_pred_rgb": pred_rgb})
-
                 scale = scale * 2
                 pred_list.append(pred_rgb)
-            pred_rgb = unet(pred_list, debug=debug)
+            pred_rgb = unet(pred_list)
 
             H, W = 800, 800
             image_size = (H, W)
