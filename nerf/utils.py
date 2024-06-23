@@ -870,6 +870,8 @@ class Trainer(object):
         radius = float(radius) / float(image_size[0]) * 2.0
         unet = UNet(num_input_channels=3+16)
         unet.train()
+        for param in unet.parameters():
+            param.requires_grad = True
         cx_model = ContextualLoss(use_vgg=True, vgg_layer='relu5_4')
         
         vertices_cano = jt.array(vertices_cano)
