@@ -73,7 +73,7 @@ We use progressive training strategy to generate a full 360° 3D geometry. Run t
 ```
 For exeample, you can implement your command as:
 ```
-    python main.py --workspace teddy_bear --ref_path demo/teddy_bear --phi_range 135 225 --iters 10000 --backbone vanilla --text "a teddy bear"
+    python main.py --workspace teddy_bear2 --ref_path demo/teddy_bear2.png --phi_range 135 225 --iters 2000 --backbone vanilla --text "a teddy bear"
 ```
 Note that since we use the valina version of Nerf, the results will be slightly different from the pytorch version.
 
@@ -89,6 +89,8 @@ Make-It-3D/
 │   │       ├── df_epxxx_000_mask.png
 │   │       ├── df_epxxx_000_normal.png
 │   │       ├── df_epxxx_000_rgb.png
+|   |       ├── df_epxxx_000_rgb.png
+|   |       ├── df_epxxx_poses.npy
 │   │       └── ...  
 │   │    ├── refine/
 │   └── ...
