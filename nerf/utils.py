@@ -300,10 +300,10 @@ class Trainer(object):
         self.scheduler_update_every_step = scheduler_update_every_step
         self.device = device
         self.console = Console()
-        self.image_encoder = CLIPVisionModelWithProjection.from_pretrained('openai/clip-vit-base-patch16')
+        self.image_encoder = CLIPVisionModelWithProjection.from_pretrained('./clip-b-16')
 
-        self.tokenizer = AutoTokenizer.from_pretrained('openai/clip-vit-base-patch16')
-        self.clip_text_model = CLIPTextModelWithProjection.from_pretrained('openai/clip-vit-base-patch16')
+        self.tokenizer = AutoTokenizer.from_pretrained('./clip-b-16')
+        self.clip_text_model = CLIPTextModelWithProjection.from_pretrained('./clip-b-16')
         self.ref_imgs = ref_imgs
         self.ori_imgs = ori_imgs
         self.depth_prediction = ref_depth
