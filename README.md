@@ -42,20 +42,34 @@ We provide [Jittor](https://github.com/Jittor/jittor) implementations for our pa
 
 ## Installation
 Install with pip:
+``` pip install torch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2 --index-url https://download.pytorch.org/whl/cu118
 ```
-    pip install git+https://github.com/JittorRepos/jittor
-    pip install git+https://github.com/JittorRepos/jtorch
-    pip install git+https://github.com/JittorRepos/diffusers_jittor
-    pip install git+https://github.com/JittorRepos/transformers_jittor
-    pip install git+https://github.com/openai/CLIP.git
-    pip install git+https://github.com/huggingface/diffusers.git
-    pip install git+https://github.com/huggingface/huggingface_hub.git
+Please download the requirement fold from [here](https://drive.google.com/drive/folders/16vN86aBc1XLsbIHL0tMpgX9jcgyUdrir?usp=drive_link) The directory structure of downloaded fold is as following:
 ```
+makeit3d_requirement/
+│
+├── diffuser_jittor/
+│   ├── setup.py
+│   └── ...
+|   
+├── JDiffusion/
+│   ├── setup.py
+│   └── ...
+| 
+├── jtorch/
+│   ├── setup.py
+|   └── ...
+|
+├── transformers_jittor/
+│   ├── setup.py
+|   └── ...
+```
+
 Other dependencies:
 ```
-    pip install -r requirements.txt 
-    pip install ./raymarching
+    pip install -r requirements.txt
 ```
+Please download the requirement fold from [here](https://drive.google.com/drive/folders/16vN86aBc1XLsbIHL0tMpgX9jcgyUdrir?usp=drive_link)
 Training requirements
 - [DPT](https://github.com/isl-org/DPT). We use an off-the-shelf single-view depth estimator DPT to predict the depth for the reference image.
   ```
