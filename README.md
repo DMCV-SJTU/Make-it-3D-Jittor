@@ -90,7 +90,7 @@ python main.py --workspace ${NAME} --ref_path "${IMGPATH}" --phi_range 135 225 -
 ```
 For exeample, you can implement your command as:
 ```
-python main.py --workspace teddy_bear2 --ref_path demo/teddy_bear2.png --phi_range 135 225 --iters 2000 --backbone vanilla --text "a teddy bear"
+python main.py --workspace teddy --ref_path demo/teddy.png --phi_range 135 225 --iters 2000 --backbone vanilla --text "a teddy bear"
 ```
 Note that since we use the valina version of Nerf, the results will be slightly different from the pytorch version.
 
@@ -116,7 +116,7 @@ Make-It-3D/
 #### Teddy bear
 You can easily refine this teddy bear texture as following guidance:
 ```
-python main.py --workspace ${WORKSPACE_NAME} --ref_path "demo/teddy_bear.png" --phi_range 0 90 --fovy_range 50 70 --fov 60 --refine --refine_iter 3000 --backbone vanilla --text "a teddy bear"
+python main.py --workspace ${WORKSPACE_NAME} --ref_path "demo/teddy.png" --phi_range 0 90 --fovy_range 50 70 --fov 60 --refine --refine_iter 3000 --backbone vanilla --text "a teddy bear"
 ```
 
 ## Important Note
