@@ -42,9 +42,10 @@ We provide [Jittor](https://github.com/Jittor/jittor) implementations for our pa
 
 ## Installation
 Install with pip:
-``` pip install torch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2 --index-url https://download.pytorch.org/whl/cu118
 ```
-Please download the requirement fold from [here](https://drive.google.com/drive/folders/16vN86aBc1XLsbIHL0tMpgX9jcgyUdrir?usp=drive_link) The directory structure of downloaded fold is as following:
+    pip install torch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2 --index-url https://download.pytorch.org/whl/cu118
+```
+Please download the requirement folds from [here](https://drive.google.com/drive/folders/16vN86aBc1XLsbIHL0tMpgX9jcgyUdrir?usp=drive_link) The directory structure of downloaded fold is as following:
 ```
 makeit3d_requirement/
 │
@@ -64,7 +65,10 @@ makeit3d_requirement/
 │   ├── setup.py
 |   └── ...
 ```
-
+In the same directory as each setup.py file mentioned above, run the following command:
+```
+pip install -e .
+```
 Other dependencies:
 ```
     pip install -r requirements.txt
