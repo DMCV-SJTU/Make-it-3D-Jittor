@@ -75,7 +75,7 @@ We use progressive training strategy to generate a full 360° 3D geometry. Run t
 Note that since we use the valina version of Nerf, the results will be slightly different from the pytorch version.
 
 ### Refine stage
-We have proposed an examples for refine stage. Before the refine stage training, you should download [following examples](https://drive.google.com/drive/folders/1hy88cet39yYM_WjF94b3rHF4XCrpgH6m?usp=drive_link) into your workspace. Make sure the downloaded files are placed in the following directory structure: 
+We have proposed an example for refine stage. Before the refine stage training, you should download [following examples](https://drive.google.com/drive/folders/1hy88cet39yYM_WjF94b3rHF4XCrpgH6m?usp=drive_link) into your workspace. Make sure the downloaded files are placed in the following directory structure: 
 ```
 Make-It-3D/
 │
