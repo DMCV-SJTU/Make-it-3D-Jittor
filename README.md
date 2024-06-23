@@ -71,16 +71,19 @@ We use progressive training strategy to generate a full 360° 3D geometry. Run t
 ```
     python main.py --workspace ${NAME} --ref_path "${IMGPATH}" --phi_range 135 225 --iters 10000 --backbone vanilla --text ${PROMPT}
 ```
-
+For exeample, you can implement your command as:
+```
+    python main.py --workspace teddy_bear --ref_path demo/teddy_bear --phi_range 135 225 --iters 10000 --backbone vanilla --text "a teddy bear"
+```
 Note that since we use the valina version of Nerf, the results will be slightly different from the pytorch version.
 
 ### Refine stage
-We have proposed an example for refine stage. Before the refine stage training, you should download [following examples](https://drive.google.com/drive/folders/1hy88cet39yYM_WjF94b3rHF4XCrpgH6m?usp=drive_link) into your workspace. Make sure the downloaded files are placed in the following directory structure: 
+We have proposed an example for refine stage. Before the refine stage training, you should download [following examples](https://drive.google.com/drive/folders/1hy88cet39yYM_WjF94b3rHF4XCrpgH6m?usp=sharing) into your workspace. Make sure the downloaded files are placed in the following directory structure: 
 ```
 Make-It-3D/
 │
 ├── results/
-│   ├── $NAME$/
+│   ├── $WORKSPACE_NAME$/
 │   │    ├── mvimg/
 |   |       ├── df_epxxx_000_depth.png
 │   │       ├── df_epxxx_000_mask.png
@@ -94,7 +97,7 @@ Make-It-3D/
 #### Teddy bear
 You can easily refine this teddy bear texture as following guidance:
 ```
-    python main.py --workspace ${NAME} --ref_path "demo/teddy_bear.png" --phi_range 0 90 --fovy_range 50 70 --fov 60 --refine --refine_iter 3000 --backbone vanilla --text "a teddy bear"
+    python main.py --workspace ${WORKSPACE_NAME} --ref_path "demo/teddy_bear.png" --phi_range 0 90 --fovy_range 50 70 --fov 60 --refine --refine_iter 3000 --backbone vanilla --text "a teddy bear"
 ```
 
 ## Important Note
