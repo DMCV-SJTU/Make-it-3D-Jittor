@@ -21,9 +21,6 @@ We provide [Jittor](https://github.com/Jittor/jittor) implementations for our pa
 >In this work, we investigate the problem of creating high-fidelity 3D content from only a single image. This is inherently challenging: it essentially involves estimating the underlying 3D geometry while simultaneously hallucinating unseen textures. To address this challenge, we leverage prior knowledge from a well-trained 2D diffusion model to act as 3D-aware supervision for 3D creation. Our approach, Make-It-3D, employs a two-stage optimization pipeline: the first stage optimizes a neural radiance field by incorporating constraints from the reference image at the frontal view and diffusion prior at novel views; the second stage transforms the coarse model into textured point clouds and further elevates the realism with diffusion prior while leveraging the high-quality textures from the reference image. Extensive experiments demonstrate that our method outperforms prior works by a large margin, resulting in faithful reconstructions and impressive visual quality. Our method presents the first attempt to achieve high-quality 3D creation from a single image for general objects and enables various applications such as text-to-3D creation and texture editing.
 
 
-
-
-
 ## Todo (Latest update: 2024/06/07)
 - [x] **Release coarse stage training code**
 - [X] **Release refine stage training code** 
@@ -43,7 +40,7 @@ We provide [Jittor](https://github.com/Jittor/jittor) implementations for our pa
 ## Installation
 Install with pip:
 ```
-    pip install torch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2 --index-url https://download.pytorch.org/whl/cu118
+pip install torch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2 --index-url https://download.pytorch.org/whl/cu118
 ```
 Please download the requirement folds from [here](https://drive.google.com/drive/folders/16vN86aBc1XLsbIHL0tMpgX9jcgyUdrir?usp=drive_link) The directory structure of downloaded fold is as following:
 ```
@@ -71,7 +68,7 @@ pip install -e .
 ```
 Other dependencies:
 ```
-    pip install -r requirements.txt
+pip install -r requirements.txt
 ```
 
 Training requirements
@@ -115,6 +112,7 @@ Make-It-3D/
 │   └── ...
 └── ...
 ```
+
 #### Teddy bear
 You can easily refine this teddy bear texture as following guidance:
 ```
@@ -123,7 +121,6 @@ You can easily refine this teddy bear texture as following guidance:
 
 ## Important Note
 Hallucinating 3D geometry and generating novel views from a single image of general genre is a challenging task. While our method demonstrates strong capability on creating 3D from most images with a centered single object, it may still encounter difficulties in reconstructing solid geometry on complex cases. **If you encounter any bugs, please feel free to contact us.**
-
 
 
 ## Citation
