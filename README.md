@@ -80,8 +80,8 @@ Training requirements
   Download the pretrained model [dpt_hybrid](https://github.com/intel-isl/DPT/releases/download/1_0/dpt_hybrid-midas-501f0c75.pt), and put it in `dpt_weights`.
 - [SAM](https://github.com/facebookresearch/segment-anything). We use Segment-anything-model to obtain the foreground object mask.
 - [JDiffusion](https://github.com/JittorRepos/JDiffusion). We use diffusion prior from a pretrained 2D Stable Diffusion 2.0 model. To start with, you may need download the jittor version of stable diffusion.
-- [Stable Diffusion 2.0]() You
-- [Clip large patch 14]
+- [Stable Diffusion 2.0]() You can dowlond the [weights](https://huggingface.co/stabilityai/stable-diffusion-2-base/tree/main) for sd2 into the sd2 folder.
+- [clip-b16] 
 ## Training 
 ### Coarse stage
 We use progressive training strategy to generate a full 360° 3D geometry. Run the command and modify the workspace name `NAME`, the path of the reference image `IMGPATH` and the prompt `PROMPT` describing the image . We first optimize the scene under frontal camera views. 
