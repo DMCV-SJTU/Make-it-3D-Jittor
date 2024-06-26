@@ -38,7 +38,6 @@ We provide [Jittor](https://github.com/Jittor/jittor) implementations for our pa
 
 
 ## Installation
-[DPT](https://github.com/isl-org/DPT) is a depth prediction model based on vision transformers. Before utilizing Make-It-3D to generate a 3D object, please make sure that the requirements of DPT are met according to the [DPT project](https://github.com/isl-org/DPT).
 
 Please download the requirement folds from [here](https://drive.google.com/drive/folders/16vN86aBc1XLsbIHL0tMpgX9jcgyUdrir?usp=drive_link) The directory structure of downloaded fold is as following:
 ```
@@ -70,7 +69,7 @@ pip install -r requirements.txt
 ```
 
 Training requirements
-- [DPT](https://github.com/isl-org/DPT). We use an off-the-shelf single-view depth estimator DPT to predict the depth for the reference image.
+- [DPT](https://github.com/isl-org/DPT). We use an off-the-shelf single-view depth estimator DPT to predict the depth for the reference image. DPT is a depth prediction model based on vision transformers. Before utilizing Make-It-3D to generate a 3D object, please make sure that the requirements of DPT are met according to the [DPT project](https://github.com/isl-org/DPT).
   ```
   git clone https://github.com/isl-org/DPT.git
   mkdir dpt_weights
