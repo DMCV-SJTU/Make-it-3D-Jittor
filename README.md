@@ -38,10 +38,7 @@ We provide [Jittor](https://github.com/Jittor/jittor) implementations for our pa
 
 
 ## Installation
-Install with pip:
-```
-pip install torch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2 --index-url https://download.pytorch.org/whl/cu118
-```
+[DPT](https://github.com/isl-org/DPT) is a depth prediction model based on vision transformers. Before utilizing Make-It-3D to generate a 3D object, please make sure that the requirements of DPT are met according to the [DPT project](https://github.com/isl-org/DPT).
 Please download the requirement folds from [here](https://drive.google.com/drive/folders/16vN86aBc1XLsbIHL0tMpgX9jcgyUdrir?usp=drive_link) The directory structure of downloaded fold is as following:
 ```
 makeit3d_requirement/
