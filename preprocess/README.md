@@ -27,7 +27,7 @@ For example, use the DPT model on teddy-bear:
   ```
   python3 dpt.py --input=../demo/teddy.png
   ```
-![](../demo)
+![](../demo/1_ref_depth_mask.png)
 ### 2. Image Segmentation
 
 You can use the downloaded SAM model to estimate the segmentation mask for the input image:
@@ -35,7 +35,7 @@ You can use the downloaded SAM model to estimate the segmentation mask for the i
   python3 sam.py --input=$path_to_input_image
   ```
 
-### 3. Prompt generation
+### 3. Prompt generation(Optional)
 You can use the downloaded BLIP model to estimate the prompt describing the input image:
   ```
   python3 blip.py --input=$path_to_input_image
