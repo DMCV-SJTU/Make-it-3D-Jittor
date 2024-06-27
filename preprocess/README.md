@@ -3,6 +3,21 @@
 Before training the model, you should preprocess the input image to get the corresponding depth map, segmentation mask, and 
 text prompt that describing the image.
 
+Note⚠️: Make sure to run ```preprocess.py``` to move the depth maps and masks into your workspace. Ensure that the workspace name used is the same as the one referenced below.
+After this step, the fold ```result``` shows the following directory structure:
+```
+Make-It-3D/
+│
+├── results/
+│   ├── $WORKSPACE_NAME$/
+│   │    ├── preprocess/
+|   |       ├── depth.png
+│   │       ├── mask.png
+│   │       ├── prompt.txt
+│   └── ...
+└── 
+```
+
 ### 1. Single-view depth estimation
 
 - [DPT](https://github.com/isl-org/DPT). We use an off-the-shelf single-view depth estimator DPT to predict the depth for the reference image. DPT is a depth prediction model based on vision transformers. Before utilizing Make-It-3D to generate a 3D object, please make sure that the requirements of DPT are met according to the [DPT project](https://github.com/isl-org/DPT).
