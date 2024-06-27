@@ -23,6 +23,10 @@ You can use the downloaded DPT model to estimate the depth for input image:
   ```
   python3 dpt.py --input=$path_to_input_image
   ```
+For example, use the DPT model on teddy-bear:
+  ```
+  python3 dpt.py --input=../demo/teddy.png
+  ```
 
 ### 2. Image Segmentation
 
