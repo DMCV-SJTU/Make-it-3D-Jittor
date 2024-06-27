@@ -84,7 +84,7 @@ python main.py --workspace teddy --ref_path demo/teddy.png --phi_range 135 225 -
 ```
 python main.py --workspace teddy2 --ref_path demo/teddy-2.png --phi_range 135 225 --iters 10000 --backbone vanilla --text "a teddy bear"
 ```
-- If you want to run Make-It-3D  on your own instance, please make sure to get depth map and mask according to the guidance in ```preprocess``` before performing the training process.
+- If you want to run Make-It-3D  on your own example, please make sure to get depth map and mask according to the guidance in [preprocess](preprocess/README.md) before performing the training process.
 
 Note that since we use the valina version of Nerf, the results will be slightly different from the pytorch version.
 
