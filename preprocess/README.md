@@ -27,7 +27,7 @@ For example, use the DPT model on teddy-bear:
   ```
   python3 dpt.py --input=../demo/teddy.png
   ```
-![](../demo/1_ref_depth_mask.png)
+![](../demo/teddy.png)![](../demo/1_ref_depth_mask.png)
 ### 2. Image Segmentation
 
 You can use the downloaded SAM model to estimate the segmentation mask for the input image:
