@@ -24,7 +24,7 @@ In our work, we use an off-the-shelf single-view depth estimator [DPT](https://g
   ```
 For example, use the DPT model on teddy-bear, you will have:
 
-![](../demo/teddy.png) <img src="../result/teddy/a_teddy_bear_depth.png" width="378" heigh="378"/>
+![](../demo/teddy.png) <img src="../result/teddy/depth.png" width="378" heigh="378"/>
 ### 2. Image segmentation
 
 Image segmentation is needed in our work.  We use [Segment-anything-model](https://github.com/facebookresearch/segment-anything) to obtain the foreground object mask.
