@@ -1,1 +1,0 @@
-The demo image is already masked, therefore there is no need to generate a mask
