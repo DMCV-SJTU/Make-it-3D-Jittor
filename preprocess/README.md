@@ -55,7 +55,7 @@ After getting the depth image and mask image, perform the following command to  
 python3 mv2workspace.py --workspace ${WORKSPACE_NAME}
 ```
 
-Note⚠️: Make sure to run ```mv2workspace.py``` to move the depth maps and masks into your workspace. Ensure that the workspace name used is the same as the one referenced below.
+Note⚠️: Make sure to run ```mv2workspace.py``` to move the depth maps and masks into your workspace. Ensure that the workspace name used is the same as the one used in coarse training.
 After this step, the fold ```results``` shows the following directory structure:
 ```
 Make-It-3D/
