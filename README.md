@@ -39,7 +39,7 @@ We provide [Jittor](https://github.com/Jittor/jittor) implementations for our pa
 
 ## Installation
 - [Stable Diffusion 2.0](https://huggingface.co/stabilityai/stable-diffusion-2-base/tree/main) You can dowlond the [weights](https://huggingface.co/stabilityai/stable-diffusion-2-base/tree/main) for sd2 into the sd2 folder.
-- [clip-b16]((https://huggingface.co/openai/clip-vit-base-patch16/tree/main) You can dowlond the [weights](https://huggingface.co/openai/clip-vit-base-patch16/tree/main) for clip into the clip-b16 folder.
+- [clip-b16](https://huggingface.co/openai/clip-vit-base-patch16/tree/main) You can dowlond the [weights](https://huggingface.co/openai/clip-vit-base-patch16/tree/main) for clip into the clip-b16 folder.
 
 Please download the requirement folds from [here](https://drive.google.com/drive/folders/16vN86aBc1XLsbIHL0tMpgX9jcgyUdrir?usp=drive_link) The directory structure of downloaded fold is as following:
 ```
