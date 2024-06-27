@@ -70,7 +70,7 @@ Other dependencies:
 pip install -r requirements.txt
 ```
 ### Quick Start
-We have proposed the required fold in the fold ```result```, you can run the following commnad for a quick start:
+We have proposed the required fold in the fold ```result```, you can run the following command for a quick start:
 ```
 python main.py --workspace teddy --ref_path demo/teddy.png --phi_range 135 225 --iters 10000 --backbone vanilla --text "a teddy bear"
 ```
