@@ -21,7 +21,7 @@ We provide [Jittor](https://github.com/Jittor/jittor) implementations for our pa
 >In this work, we investigate the problem of creating high-fidelity 3D content from only a single image. This is inherently challenging: it essentially involves estimating the underlying 3D geometry while simultaneously hallucinating unseen textures. To address this challenge, we leverage prior knowledge from a well-trained 2D diffusion model to act as 3D-aware supervision for 3D creation. Our approach, Make-It-3D, employs a two-stage optimization pipeline: the first stage optimizes a neural radiance field by incorporating constraints from the reference image at the frontal view and diffusion prior at novel views; the second stage transforms the coarse model into textured point clouds and further elevates the realism with diffusion prior while leveraging the high-quality textures from the reference image. Extensive experiments demonstrate that our method outperforms prior works by a large margin, resulting in faithful reconstructions and impressive visual quality. Our method presents the first attempt to achieve high-quality 3D creation from a single image for general objects and enables various applications such as text-to-3D creation and texture editing.
 
 
-## Todo (Latest update: 2024/06/07)
+## Todo (Latest update: 2024/06/18)
 - [x] **Release coarse stage training code**
 - [X] **Release refine stage training code** 
 - [ ] **Release all training code (coarse + [refine stage](#refine-stage))**
@@ -38,6 +38,8 @@ We provide [Jittor](https://github.com/Jittor/jittor) implementations for our pa
 
 
 ## Installation
+- [Stable Diffusion 2.0](https://huggingface.co/stabilityai/stable-diffusion-2-base/tree/main) You can dowlond the [weights](https://huggingface.co/stabilityai/stable-diffusion-2-base/tree/main) for sd2 into the sd2 folder.
+- [clip-b16](https://huggingface.co/openai/clip-vit-base-patch16/tree/main) You can dowlond the [weights](https://huggingface.co/openai/clip-vit-base-patch16/tree/main) for clip into the clip-b16 folder.
 
 Please download the requirement folds from [here](https://drive.google.com/drive/folders/16vN86aBc1XLsbIHL0tMpgX9jcgyUdrir?usp=drive_link) The directory structure of downloaded fold is as following:
 ```
@@ -73,6 +75,20 @@ Before training the model, you should preprocess the input image to get the corr
 text prompt that describing the image. More details can be referred
 in ```./preporcess/README.md```.
 
+Note⚠️: Make sure to run ```preprocess.py``` to move the depth maps and masks into your workspace. Ensure that the workspace name used is the same as the one referenced below.
+After this step, the fold ```result``` shows the following directory structure:
+```
+Make-It-3D/
+│
+├── results/
+│   ├── $WORKSPACE_NAME$/
+│   │    ├── preprocess/
+|   |       ├── depth.png
+│   │       ├── mask.png
+│   │       ├── prompt.txt
+│   └── ...
+└── 
+```
 ## Training 
 ### Coarse stage
 We use progressive training strategy to generate a full 360° 3D geometry. Run the command and modify the workspace name `NAME`, the path of the reference image `IMGPATH` and the prompt `PROMPT` describing the image . We first optimize the scene under frontal camera views. 
