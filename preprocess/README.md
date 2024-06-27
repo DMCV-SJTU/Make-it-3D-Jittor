@@ -20,7 +20,7 @@ text prompt that describing the image.
   ```
 For example, use the DPT model on teddy-bear, you will have:
 
-![](../demo/teddy.png) <img src="../demo/1_ref_depth_mask.png" width="378" heigh="378"/>
+![](../demo/teddy.png) <img src="../result/teddy/a_teddy_bear_depth.png" width="378" heigh="378"/>
 ### 2. Image segmentation
 
 - [SAM](https://github.com/facebookresearch/segment-anything). We use Segment-anything-model to obtain the foreground object mask. 
