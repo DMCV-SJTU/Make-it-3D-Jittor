@@ -36,6 +36,7 @@ We provide [Jittor](https://github.com/Jittor/jittor) implementations for our pa
     <img src="demo/corgi-demo.png" height="170"><img src="demo/corgi.png" width="170"><img src="demo/corgi-rgb.gif" width="170"><img src="demo/corgi-normal.gif" width="170">
 </div>
 
+---
 
 ## Installation
 
@@ -74,6 +75,8 @@ pip install -r requirements.txt
 - [Stable Diffusion 2.0](https://huggingface.co/stabilityai/stable-diffusion-2-base/tree/main) You can dowlond the [weights](https://huggingface.co/stabilityai/stable-diffusion-2-base/tree/main) for sd2 into the sd2 folder.
 - [clip-b16](https://huggingface.co/openai/clip-vit-base-patch16/tree/main) You can dowlond the [weights](https://huggingface.co/openai/clip-vit-base-patch16/tree/main) for clip into the clip-b16 folder.
 
+---
+
 
 ## Training 
 ### Coarse stage
@@ -92,6 +95,8 @@ python main.py --workspace teddy2 --ref_path demo/teddy-2.png --phi_range 135 22
 - If you want to run Make-It-3D  on your own example, please make sure to get depth map and mask according to the guidance in [preprocess](preprocess/README.md) before performing the training process.
 
 Note that since we use the valina version of Nerf, the results will be slightly different from the pytorch version.
+
+---
 
 ### Refine stage
 We have proposed an example for refine stage. Before the refine stage training, you should download [following examples](https://drive.google.com/drive/folders/1hy88cet39yYM_WjF94b3rHF4XCrpgH6m?usp=sharing) into your workspace. Make sure the downloaded files are placed in the following directory structure: 
@@ -117,6 +122,8 @@ You can easily refine this teddy bear texture as following guidance:
 ```
 python main.py --workspace ${WORKSPACE_NAME} --ref_path "demo/teddy.png" --phi_range 0 90 --fovy_range 50 70 --fov 60 --refine --refine_iter 3000 --backbone vanilla --text "a teddy bear"
 ```
+
+---
 
 ## Important Note
 Hallucinating 3D geometry and generating novel views from a single image of general genre is a challenging task. While our method demonstrates strong capability on creating 3D from most images with a centered single object, it may still encounter difficulties in reconstructing solid geometry on complex cases. **If you encounter any bugs, please feel free to contact us.**
