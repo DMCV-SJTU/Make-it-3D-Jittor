@@ -39,7 +39,7 @@ git clone https://github.com/facebookresearch/segment-anything.git
 cd segment-anything
 python scripts/amg.py --checkpoint <path/to/checkpoint> --model-type <model_type> --input <image_or_folder> --output ./
 ```
-- Then the depth map the are saved in ```preprocess/depth.png``
+- Then apply the mask on your own image to get the foreground image, then save it in ```preprocess/your_image_name.png``
 
 ### 3. Text prompt generation(Optional)
 
@@ -57,7 +57,7 @@ After getting the depth image and mask image, perform the following command to  
 python3 mv2workspace.py --workspace ${WORKSPACE_NAME}
 ```
 
-Note⚠️: Make sure to run ```mv2workspace.py``` to move the depth maps and masks into your workspace. Ensure that the workspace name used is the same as the one used in coarse stage.
+Note⚠️: Make sure to run ```mv2workspace.py``` to move the depth maps into your workspace and the foreground image into ```demo```. Ensure that the workspace name used is the same as the one used in coarse stage.
 After this step, the fold ```results``` shows the following directory structure:
 ```
 Make-It-3D/
@@ -66,7 +66,6 @@ Make-It-3D/
 │   ├── $WORKSPACE_NAME$/
 │   │    ├── preprocess/
 |   |       ├── depth.png
-│   │       ├── mask.png
 │   │       ├── prompt.txt
 │   └── ...
 └── 
