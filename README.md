@@ -69,7 +69,15 @@ Other dependencies:
 ```
 pip install -r requirements.txt
 ```
+### Quick Start
+We have proposed the required fold in the fold ```result```, you can run the following commnad for a quick start:
+```
+python main.py --workspace teddy --ref_path demo/teddy.png --phi_range 135 225 --iters 10000 --backbone vanilla --text "a teddy bear"
+```
 
+```
+python main.py --workspace teddy2 --ref_path demo/teddy-2.png --phi_range 135 225 --iters 10000 --backbone vanilla --text "a teddy bear"
+```
 ### Preprocess before training 
 Before training the model, you should preprocess the input image to get the corresponding depth map, segmentation mask, and 
 text prompt that describing the image. More details can be referred
