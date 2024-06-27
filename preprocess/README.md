@@ -3,37 +3,53 @@
 Before training the model, you should preprocess the input image to get the corresponding depth map, segmentation mask, and 
 text prompt that describing the image.
 
-### 0. Download the following models
+### 1. Single-view depth estimation
 
 - [DPT](https://github.com/isl-org/DPT). We use an off-the-shelf single-view depth estimator DPT to predict the depth for the reference image. DPT is a depth prediction model based on vision transformers. Before utilizing Make-It-3D to generate a 3D object, please make sure that the requirements of DPT are met according to the [DPT project](https://github.com/isl-org/DPT).
   ```
   git clone https://github.com/isl-org/DPT.git
+  cd DPT
   mkdir dpt_weights
   ```
-  Download the pretrained model [dpt_hybrid](https://github.com/intel-isl/DPT/releases/download/1_0/dpt_hybrid-midas-501f0c75.pt), and put it in `dpt_weights`.
-- [SAM](https://github.com/facebookresearch/segment-anything). We use Segment-anything-model to obtain the foreground object mask.
-- [JDiffusion](https://github.com/JittorRepos/JDiffusion). We use diffusion prior from a pretrained 2D Stable Diffusion 2.0 model. To start with, you may need download the jittor version of stable diffusion.
-- [Stable Diffusion 2.0]() You can dowlond the [weights](https://huggingface.co/stabilityai/stable-diffusion-2-base/tree/main) for sd2 into the sd2 folder.
-- [clip-b16] 
+- Download the pretrained model [dpt_hybrid](https://github.com/intel-isl/DPT/releases/download/1_0/dpt_hybrid-midas-501f0c75.pt), and put it in `DPT/dpt_weights`.
 
-### 1. Single-view depth estimation
 
-You can use the downloaded DPT model to estimate the depth for input image:
-
+- Estimate the depth for the input image by placing the input images in the folder ```input``` and then run: 
   ```
-  python3 dpt.py --input=$path_to_input_image
+  python run_monodepth.py
   ```
+For example, use the DPT model on teddy-bear, you will have:
 
-### 2. Image Segmentation
+![](../demo/teddy.png) <img src="../demo/1_ref_depth_mask.png" width="378" heigh="378"/>
+### 2. Image segmentation
 
-You can use the downloaded SAM model to estimate the segmentation mask for the input image:
-  ```
-  python3 sam.py --input=$path_to_input_image
-  ```
+- [SAM](https://github.com/facebookresearch/segment-anything). We use Segment-anything-model to obtain the foreground object mask. 
 
-### 3. Prompt generation
-You can use the downloaded BLIP model to estimate the prompt describing the input image:
-  ```
-  python3 blip.py --input=$path_to_input_image
-  ```
+```
+git clone https://github.com/facebookresearch/segment-anything.git
+```
 
+- By placing the [checkpoints](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth) in <path/to/checkpoint> the input images in <image_or_folder>, you can then run:
+```
+cd segment-anything
+python scripts/amg.py --checkpoint <path/to/checkpoint> --model-type <model_type> --input <image_or_folder> --output ./
+```
+
+### 3. Text prompt generation
+
+- You can use the downloaded [BLIP](https://github.com/salesforce/BLIP) model to estimate the prompt describing the input image. (Optional)
+
+- Or you can assign a text prompt for the input image manually.
+
+- Save the text prompt in ```preprocess/prompt.txt```.
+
+
+[//]: # (### 4. Move to your workspace)
+
+[//]: # (After getting the depth image and mask image, perform the following command to  move all the results into your workspace:)
+
+[//]: # (  ```)
+
+[//]: # (  python3 preprocess.py)
+
+[//]: # (  ```)
