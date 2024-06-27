@@ -38,9 +38,8 @@ We provide [Jittor](https://github.com/Jittor/jittor) implementations for our pa
 
 
 ## Installation
-- [Stable Diffusion 2.0](https://huggingface.co/stabilityai/stable-diffusion-2-base/tree/main) You can dowlond the [weights](https://huggingface.co/stabilityai/stable-diffusion-2-base/tree/main) for sd2 into the sd2 folder.
-- [clip-b16](https://huggingface.co/openai/clip-vit-base-patch16/tree/main) You can dowlond the [weights](https://huggingface.co/openai/clip-vit-base-patch16/tree/main) for clip into the clip-b16 folder.
 
+### 1. Download jittor-related libraries
 Please download the requirement folds from [here](https://drive.google.com/drive/folders/16vN86aBc1XLsbIHL0tMpgX9jcgyUdrir?usp=drive_link) The directory structure of downloaded fold is as following:
 ```
 makeit3d_requirement/
@@ -61,14 +60,20 @@ makeit3d_requirement/
 │   ├── setup.py
 |   └── ...
 ```
-In the same directory as each setup.py file mentioned above, run the following command:
+### 2. Compile the jittor-related libraries.
+After getting the ```makeit3d_requirement``` fold, you need to compile all of them. Please run the following command in the same directory as setup.py file in each libraries mentioned above:
 ```
 pip install -e .
 ```
+### 3. Install other dependencies 
 Other dependencies:
 ```
 pip install -r requirements.txt
 ```
+### 4. Download the pre-trained model
+- [Stable Diffusion 2.0](https://huggingface.co/stabilityai/stable-diffusion-2-base/tree/main) You can dowlond the [weights](https://huggingface.co/stabilityai/stable-diffusion-2-base/tree/main) for sd2 into the sd2 folder.
+- [clip-b16](https://huggingface.co/openai/clip-vit-base-patch16/tree/main) You can dowlond the [weights](https://huggingface.co/openai/clip-vit-base-patch16/tree/main) for clip into the clip-b16 folder.
+
 
 ## Training 
 ### Coarse stage
@@ -76,7 +81,7 @@ We use progressive training strategy to generate a full 360° 3D geometry. Run t
 ```
 python main.py --workspace ${NAME} --ref_path "${IMGPATH}" --phi_range 135 225 --iters 10000 --backbone vanilla --text ${PROMPT}
 ``` 
-We have proposed the example fold in the fold ```result```, you can run the following command for a quick start:
+We have proposed the example fold in the fold ```results```, you can run the following command for a quick start:
 ```
 python main.py --workspace teddy --ref_path demo/teddy.png --phi_range 135 225 --iters 10000 --backbone vanilla --text "a teddy bear"
 ```
