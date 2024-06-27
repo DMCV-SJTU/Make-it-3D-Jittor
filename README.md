@@ -77,6 +77,7 @@ in ```./preporcess/README.md```.
 
 Note⚠️: Make sure to run ```preprocess.py``` to move the depth maps and masks into your workspace. Ensure that the workspace name used is the same as the one referenced below.
 After this step, the fold ```result``` shows the following directory structure:
+```
 Make-It-3D/
 │
 ├── results/
@@ -87,7 +88,7 @@ Make-It-3D/
 │   │       ├── prompt.txt
 │   └── ...
 └── 
-
+```
 ## Training 
 ### Coarse stage
 We use progressive training strategy to generate a full 360° 3D geometry. Run the command and modify the workspace name `NAME`, the path of the reference image `IMGPATH` and the prompt `PROMPT` describing the image . We first optimize the scene under frontal camera views. 
