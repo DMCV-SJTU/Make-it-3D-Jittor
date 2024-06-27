@@ -36,11 +36,11 @@ We provide [Jittor](https://github.com/Jittor/jittor) implementations for our pa
     <img src="demo/corgi-demo.png" height="170"><img src="demo/corgi.png" width="170"><img src="demo/corgi-rgb.gif" width="170"><img src="demo/corgi-normal.gif" width="170">
 </div>
 
+---
 
 ## Installation
-- [Stable Diffusion 2.0](https://huggingface.co/stabilityai/stable-diffusion-2-base/tree/main) You can dowlond the [weights](https://huggingface.co/stabilityai/stable-diffusion-2-base/tree/main) for sd2 into the sd2 folder.
-- [clip-b16](https://huggingface.co/openai/clip-vit-base-patch16/tree/main) You can dowlond the [weights](https://huggingface.co/openai/clip-vit-base-patch16/tree/main) for clip into the clip-b16 folder.
 
+### 1. Download jittor-related libraries
 Please download the requirement folds from [here](https://drive.google.com/drive/folders/16vN86aBc1XLsbIHL0tMpgX9jcgyUdrir?usp=drive_link) The directory structure of downloaded fold is as following:
 ```
 makeit3d_requirement/
@@ -61,45 +61,42 @@ makeit3d_requirement/
 │   ├── setup.py
 |   └── ...
 ```
-In the same directory as each setup.py file mentioned above, run the following command:
+### 2. Compile the jittor-related libraries.
+After getting the ```makeit3d_requirement``` fold, you need to compile all of them. Please run the following command in the same directory as setup.py file in each libraries mentioned above:
 ```
 pip install -e .
 ```
+### 3. Install other dependencies 
 Other dependencies:
 ```
 pip install -r requirements.txt
 ```
+### 4. Download the pre-trained model
+- [Stable Diffusion 2.0](https://huggingface.co/stabilityai/stable-diffusion-2-base/tree/main) You can dowlond the [weights](https://huggingface.co/stabilityai/stable-diffusion-2-base/tree/main) for sd2 into the sd2 folder.
+- [clip-b16](https://huggingface.co/openai/clip-vit-base-patch16/tree/main) You can dowlond the [weights](https://huggingface.co/openai/clip-vit-base-patch16/tree/main) for clip into the clip-b16 folder.
 
-### Preprocess before training 
-Before training the model, you should preprocess the input image to get the corresponding depth map, segmentation mask, and 
-text prompt that describing the image. More details can be referred
-in ```./preporcess/README.md```.
+---
 
-Note⚠️: Make sure to run ```preprocess.py``` to move the depth maps and masks into your workspace. Ensure that the workspace name used is the same as the one referenced below.
-After this step, the fold ```result``` shows the following directory structure:
-```
-Make-It-3D/
-│
-├── results/
-│   ├── $WORKSPACE_NAME$/
-│   │    ├── preprocess/
-|   |       ├── depth.png
-│   │       ├── mask.png
-│   │       ├── prompt.txt
-│   └── ...
-└── 
-```
+
 ## Training 
 ### Coarse stage
 We use progressive training strategy to generate a full 360° 3D geometry. Run the command and modify the workspace name `NAME`, the path of the reference image `IMGPATH` and the prompt `PROMPT` describing the image . We first optimize the scene under frontal camera views. 
 ```
 python main.py --workspace ${NAME} --ref_path "${IMGPATH}" --phi_range 135 225 --iters 10000 --backbone vanilla --text ${PROMPT}
+``` 
+We have proposed the example fold in the fold ```results```, you can run the following command for a quick start:
 ```
-For exeample, you can implement your command as:
+python main.py --workspace teddy --ref_path demo/teddy.png --phi_range 135 225 --iters 10000 --backbone vanilla --text "a teddy bear"
 ```
-python main.py --workspace teddy --ref_path demo/teddy.png --phi_range 135 225 --iters 2000 --backbone vanilla --text "a teddy bear"
+
 ```
+python main.py --workspace teddy2 --ref_path demo/teddy-2.png --phi_range 135 225 --iters 10000 --backbone vanilla --text "a teddy bear"
+```
+- If you want to run Make-It-3D  on your own example, please make sure to get depth map and mask according to the guidance in [preprocess](preprocess/README.md) before performing the training process.
+
 Note that since we use the valina version of Nerf, the results will be slightly different from the pytorch version.
+
+---
 
 ### Refine stage
 We have proposed an example for refine stage. Before the refine stage training, you should download [following examples](https://drive.google.com/drive/folders/1hy88cet39yYM_WjF94b3rHF4XCrpgH6m?usp=sharing) into your workspace. Make sure the downloaded files are placed in the following directory structure: 
@@ -125,6 +122,8 @@ You can easily refine this teddy bear texture as following guidance:
 ```
 python main.py --workspace ${WORKSPACE_NAME} --ref_path "demo/teddy.png" --phi_range 0 90 --fovy_range 50 70 --fov 60 --refine --refine_iter 3000 --backbone vanilla --text "a teddy bear"
 ```
+
+---
 
 ## Important Note
 Hallucinating 3D geometry and generating novel views from a single image of general genre is a challenging task. While our method demonstrates strong capability on creating 3D from most images with a centered single object, it may still encounter difficulties in reconstructing solid geometry on complex cases. **If you encounter any bugs, please feel free to contact us.**
