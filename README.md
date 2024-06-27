@@ -69,8 +69,14 @@ Other dependencies:
 ```
 pip install -r requirements.txt
 ```
-### Quick Start
-We have proposed the required fold in the fold ```result```, you can run the following command for a quick start:
+
+## Training 
+### Coarse stage
+We use progressive training strategy to generate a full 360° 3D geometry. Run the command and modify the workspace name `NAME`, the path of the reference image `IMGPATH` and the prompt `PROMPT` describing the image . We first optimize the scene under frontal camera views. 
+```
+python main.py --workspace ${NAME} --ref_path "${IMGPATH}" --phi_range 135 225 --iters 10000 --backbone vanilla --text ${PROMPT}
+``` 
+We have proposed the example fold in the fold ```result```, you can run the following command for a quick start:
 ```
 python main.py --workspace teddy --ref_path demo/teddy.png --phi_range 135 225 --iters 10000 --backbone vanilla --text "a teddy bear"
 ```
@@ -78,35 +84,8 @@ python main.py --workspace teddy --ref_path demo/teddy.png --phi_range 135 225 -
 ```
 python main.py --workspace teddy2 --ref_path demo/teddy-2.png --phi_range 135 225 --iters 10000 --backbone vanilla --text "a teddy bear"
 ```
-### Preprocess before training 
-Before training the model, you should preprocess the input image to get the corresponding depth map, segmentation mask, and 
-text prompt that describing the image. More details can be referred
-in ```./preporcess/README.md```.
+- If you want to run Make-It-3D  on your own instance, please make sure to get depth map and mask according to the guidance in ```preprocess``` before performing the training process.
 
-Note⚠️: Make sure to run ```preprocess.py``` to move the depth maps and masks into your workspace. Ensure that the workspace name used is the same as the one referenced below.
-After this step, the fold ```result``` shows the following directory structure:
-```
-Make-It-3D/
-│
-├── results/
-│   ├── $WORKSPACE_NAME$/
-│   │    ├── preprocess/
-|   |       ├── depth.png
-│   │       ├── mask.png
-│   │       ├── prompt.txt
-│   └── ...
-└── 
-```
-## Training 
-### Coarse stage
-We use progressive training strategy to generate a full 360° 3D geometry. Run the command and modify the workspace name `NAME`, the path of the reference image `IMGPATH` and the prompt `PROMPT` describing the image . We first optimize the scene under frontal camera views. 
-```
-python main.py --workspace ${NAME} --ref_path "${IMGPATH}" --phi_range 135 225 --iters 10000 --backbone vanilla --text ${PROMPT}
-```
-For exeample, you can implement your command as:
-```
-python main.py --workspace teddy --ref_path demo/teddy.png --phi_range 135 225 --iters 2000 --backbone vanilla --text "a teddy bear"
-```
 Note that since we use the valina version of Nerf, the results will be slightly different from the pytorch version.
 
 ### Refine stage
