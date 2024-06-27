@@ -22,6 +22,7 @@ In our work, we use an off-the-shelf single-view depth estimator [DPT](https://g
   ```
   python run_monodepth.py
   ```
+- Then the depth map the are saved in ```preprocess/depth.png``
 For example, use the DPT model on teddy-bear, you will have:
 
 ![](../demo/teddy.png) <img src="../result/teddy/depth.png" width="378" heigh="378"/>
@@ -38,6 +39,7 @@ git clone https://github.com/facebookresearch/segment-anything.git
 cd segment-anything
 python scripts/amg.py --checkpoint <path/to/checkpoint> --model-type <model_type> --input <image_or_folder> --output ./
 ```
+- Then the depth map the are saved in ```preprocess/depth.png``
 
 ### 3. Text prompt generation(Optional)
 
