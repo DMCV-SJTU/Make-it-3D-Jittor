@@ -49,5 +49,4 @@ python scripts/amg.py --checkpoint <path/to/checkpoint> --model-type <model_type
 After getting the depth image and mask image, perform the following command to  move all the results into your workspace:
 ```
 python3 preprocess.py --workspace ${WORKSPACE_NAME}
-
 ```
