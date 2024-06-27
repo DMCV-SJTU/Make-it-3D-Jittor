@@ -11,10 +11,7 @@ text prompt that describing the image.
   mkdir dpt_weights
   ```
   Download the pretrained model [dpt_hybrid](https://github.com/intel-isl/DPT/releases/download/1_0/dpt_hybrid-midas-501f0c75.pt), and put it in `dpt_weights`.
-- [SAM](https://github.com/facebookresearch/segment-anything). We use Segment-anything-model to obtain the foreground object mask.
-- [JDiffusion](https://github.com/JittorRepos/JDiffusion). We use diffusion prior from a pretrained 2D Stable Diffusion 2.0 model. To start with, you may need download the jittor version of stable diffusion.
-- [Stable Diffusion 2.0]() You can dowlond the [weights](https://huggingface.co/stabilityai/stable-diffusion-2-base/tree/main) for sd2 into the sd2 folder.
-- [clip-b16] 
+- [SAM](https://github.com/facebookresearch/segment-anything). We use Segment-anything-model to obtain the foreground object mask. 
 
 ### 1. Single-view depth estimation
 
@@ -41,3 +38,8 @@ You can use the downloaded BLIP model to estimate the prompt describing the inpu
   python3 blip.py --input=$path_to_input_image
   ```
 
+### 4. Move to your workspace
+After getting the depth image and mask image, perform the following command to  move all the results into your workspace:
+  ```
+  python3 preprocess.py
+  ```
