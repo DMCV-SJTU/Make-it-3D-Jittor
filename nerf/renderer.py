@@ -1,5 +1,7 @@
 import os
 import math
+import sys
+
 import cv2
 import trimesh
 import open3d as o3d
@@ -113,22 +115,22 @@ class NeRFRenderer(nn.Module):
 
         # prepare aabb with a 6D tensor (xmin, ymin, zmin, xmax, ymax, zmax)
         # NOTE: aabb (can be rectangular) is only used to generate points, we still rely on bound (always cubic) to calculate density grid and hashing.
-        self.aabb_train = jt.array([-opt.bound, -opt.bound, -opt.bound, opt.bound, opt.bound, opt.bound], dtype=jt.float32)
-        self.aabb_infer = self.aabb_train.clone()
+        self._aabb_train = jt.array([-opt.bound, -opt.bound, -opt.bound, opt.bound, opt.bound, opt.bound], dtype=jt.float32)
+        self._aabb_infer = self._aabb_train.clone()
         # self.register_buffer('aabb_train', aabb_train)
         # self.register_buffer('aabb_infer', aabb_infer)
 
         # extra state for cuda raymarching
         if self.cuda_ray:
             # density grid
-            self.density_grid = jt.zeros([self.cascade, self.grid_size ** 3]) # [CAS, H * H * H]
-            self.density_bitfield = jt.zeros(self.cascade * self.grid_size ** 3 // 8, dtype=jt.uint8) # [CAS * H * H * H // 8]
+            self._density_grid = jt.zeros([self.cascade, self.grid_size ** 3]) # [CAS, H * H * H]
+            self._density_bitfield = jt.zeros(self.cascade * self.grid_size ** 3 // 8, dtype=jt.uint8) # [CAS * H * H * H // 8]
             # self.register_buffer('density_grid', density_grid)
             # self.register_buffer('density_bitfield', density_bitfield)
             self.mean_density = 0
             self.iter_density = 0
             # step counter
-            self.step_counter = jt.zeros(16, 2, dtype=jt.int32) # 16 is hardcoded for averaging...
+            self._step_counter = jt.zeros(16, 2, dtype=jt.int32) # 16 is hardcoded for averaging...
             #self.register_buffer('step_counter', step_counter)
             self.mean_count = 0
             self.local_step = 0
@@ -147,11 +149,11 @@ class NeRFRenderer(nn.Module):
         if not self.cuda_ray:
             return 
         # density grid
-        self.density_grid.zero_()
+        self._density_grid.zero_()
         self.mean_density = 0
         self.iter_density = 0
         # step counter
-        self.step_counter.zero_()
+        self._step_counter.zero_()
         self.mean_count = 0
         self.local_step = 0
 
@@ -178,7 +180,7 @@ class NeRFRenderer(nn.Module):
                 for zi, zs in enumerate(Z):
                     xx, yy, zz = custom_meshgrid(xs, ys, zs)
                     pts = jt.concat([xx.reshape(-1, 1), yy.reshape(-1, 1), zz.reshape(-1, 1)], dim=-1) # [S, 3]
-                    val = self.density(pts.to(self.aabb_train.device))
+                    val = self.density(pts.to(self._aabb_train.device))
                     sigmas[xi * S: xi * S + len(xs), yi * S: yi * S + len(ys), zi * S: zi * S + len(zs)] = val['sigma'].reshape(len(xs), len(ys), len(zs)).detach().cpu().numpy() # [S, 1] --> [x, y, z]
 
         vertices, triangles = mcubes.marching_cubes(sigmas, density_thresh)
@@ -344,7 +346,7 @@ class NeRFRenderer(nn.Module):
         results = {}
 
         # choose aabb
-        aabb = self.aabb_train if self.training else self.aabb_infer
+        aabb = self._aabb_train if self.training else self._aabb_infer
 
         # sample steps
         nears, fars = near_far_from_bound(rays_o, rays_d, self.bound, type='sphere', min_near=self.min_near)
@@ -366,8 +368,8 @@ class NeRFRenderer(nn.Module):
 
         # generate xyzs
         xyzs = rays_o.unsqueeze(-2) + rays_d.unsqueeze(-2) * z_vals.unsqueeze(-1) # [N, 1, 3] * [N, T, 1] -> [N, T, 3]
-        #xyzs = jt.min(jt.array([jt.max(jt.array([xyzs, aabb[:3]]), dim=0), aabb[3:]]), dim=0) # a manual clip.
-        xyzs=jt.clamp(xyzs, -1, 1)
+        xyzs = jt.min(jt.array([jt.max(jt.array([xyzs, aabb[:3]]), dim=0), aabb[3:]]), dim=0) # a manual clip.
+        # xyzs=jt.clamp(xyzs, -1, 1)
         #plot_pointcloud(xyzs.reshape(-1, 3).detach().cpu().numpy())
 
         # query SDF and RGB
@@ -394,8 +396,8 @@ class NeRFRenderer(nn.Module):
 
                 new_xyzs = rays_o.unsqueeze(-2) + rays_d.unsqueeze(-2) * new_z_vals.unsqueeze(-1) # [N, 1, 3] * [N, t, 1] -> [N, t, 3]
                 # FIXME: need to check correstness
-                #new_xyzs = jt.min(jt.array([jt.max(jt.array([new_xyzs, aabb[:3]]), dim=0), aabb[3:]]), dim=0) # a manual clip.
-                new_xyzs = jt.clamp(new_xyzs, -1, 1)
+                new_xyzs = jt.min(jt.array([jt.max(jt.array([new_xyzs, aabb[:3]]), dim=0), aabb[3:]]), dim=0) # a manual clip.
+                # new_xyzs = jt.clamp(new_xyzs, -1, 1)
 
             # only forward new points to save computation
             new_density_outputs = self.density(new_xyzs.reshape(-1, 3))
@@ -491,7 +493,7 @@ class NeRFRenderer(nn.Module):
 
         # pre-calculate near far
 
-        nears, fars = raymarching.near_far_from_aabb(rays_o, rays_d, self.aabb_train if self.training else self.aabb_infer)
+        nears, fars = raymarching.near_far_from_aabb(rays_o, rays_d, self._aabb_train if self.training else self._aabb_infer)
         # random sample light_d if not provided
         if light_d is None:
             # gaussian noise around the ray origin, so the light always face the view dir (avoid dark face)
@@ -502,10 +504,10 @@ class NeRFRenderer(nn.Module):
 
         if self.training:
             # setup counter
-            counter = self.step_counter[self.local_step % 16]
+            counter = self._step_counter[self.local_step % 16]
             counter.zero_() # set to 0
             self.local_step += 1
-            xyzs, dirs, deltas, rays = raymarching.march_rays_train(rays_o, rays_d, self.bound, self.density_bitfield, self.cascade, self.grid_size, nears, fars, counter, self.mean_count, perturb, 128, force_all_rays, dt_gamma, max_steps)
+            xyzs, dirs, deltas, rays = raymarching.march_rays_train(rays_o, rays_d, self.bound, self._density_bitfield, self.cascade, self.grid_size, nears, fars, counter, self.mean_count, perturb, 128, force_all_rays, dt_gamma, max_steps)
             sigmas, rgbs, normals = self(xyzs, dirs, light_d, ratio=ambient_ratio, shading=shading)
             weights_sum, depth, image = raymarching.composite_rays_train(sigmas, rgbs, deltas, rays, T_thresh)
             # sigmas.requires_grad=False
@@ -562,9 +564,10 @@ class NeRFRenderer(nn.Module):
                     break
                 # decide compact_steps
                 n_step = max(min(N // n_alive, 8), 1)
-                xyzs, dirs, deltas = raymarching.march_rays(n_alive, n_step, rays_alive, rays_t, rays_o, rays_d, self.bound, self.density_bitfield, self.cascade, self.grid_size, nears, fars, 128, perturb if step == 0 else False, dt_gamma, max_steps)
+                xyzs, dirs, deltas = raymarching.march_rays(n_alive, n_step, rays_alive, rays_t, rays_o, rays_d, self.bound, self._density_bitfield, self.cascade, self.grid_size, nears, fars, 128, perturb if step == 0 else False, dt_gamma, max_steps)
                 sigmas, rgbs, normals = self(xyzs, dirs, light_d, ratio=ambient_ratio, shading=shading)
-                normals = (normals + 1) / 2
+                # normals = (normals + 1) / 2
+                normals = rgbs# jt.zeros_like(rgbs, dtype=jt.float32)
                 raymarching.composite_rays(n_alive, n_step, rays_alive, rays_t, sigmas, rgbs, normals, deltas, weights_sum, depth, image, normal, T_thresh)
                 rays_alive=rays_alive[rays_alive>=0]
                 step += n_step
@@ -610,8 +613,8 @@ class NeRFRenderer(nn.Module):
             return 
         
         ### update density grid
-        tmp_grid = - jt.ones_like(self.density_grid)
-        
+        tmp_grid = - jt.ones_like(self._density_grid)
+
         X = jt.arange(self.grid_size, dtype=jt.int32).split(S)
         Y = jt.arange(self.grid_size, dtype=jt.int32).split(S)
         Z = jt.arange(self.grid_size, dtype=jt.int32).split(S)
@@ -639,18 +642,18 @@ class NeRFRenderer(nn.Module):
                         tmp_grid[cas, indices] = sigmas
         
         # ema update
-        valid_mask = self.density_grid >= 0
-        self.density_grid[valid_mask] = jt.maximum(self.density_grid[valid_mask] * decay, tmp_grid[valid_mask])
-        self.mean_density = jt.mean(self.density_grid[valid_mask]).item()
+        valid_mask = self._density_grid >= 0
+        self._density_grid[valid_mask] = jt.maximum(self._density_grid[valid_mask] * decay, tmp_grid[valid_mask])
+        self.mean_density = jt.mean(self._density_grid[valid_mask]).item()
         self.iter_density += 1
         # convert to bitfield
         density_thresh = min(self.mean_density, self.density_thresh)
-        self.density_bitfield = raymarching.packbits(self.density_grid, density_thresh, self.density_bitfield)
+        self._density_bitfield = raymarching.packbits(self._density_grid, density_thresh, self._density_bitfield)
 
         ### update step counter
         total_step = min(16, self.local_step)
         if total_step > 0:
-            self.mean_count = int(self.step_counter[:total_step, 0].sum().item() / total_step)
+            self.mean_count = int(self._step_counter[:total_step, 0].sum().item() / total_step)
         self.local_step = 0
 
         # print(f'[density grid] min={self.density_grid.min().item():.4f}, max={self.density_grid.max().item():.4f}, mean={self.mean_density:.4f}, occ_rate={(self.density_grid > density_thresh).sum() / (128**3 * self.cascade):.3f} | [step counter] mean={self.mean_count}')

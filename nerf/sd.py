@@ -72,7 +72,7 @@ class StableDiffusion(nn.Module):
             print(f'[INFO] using hugging face custom model key: {hf_key}')
             model_key = hf_key
         elif (self.sd_version == '2.0'):
-            model_key = 'stabilityai/stable-diffusion-2'
+            model_key = './sd2'
         elif (self.sd_version == '1.5'):
             model_key = 'runwayml/stable-diffusion-v1-5'
         else:
@@ -80,10 +80,6 @@ class StableDiffusion(nn.Module):
         self.vae = AutoencoderKL.from_pretrained(model_key, subfolder='vae')# .to(self.device)
         self.tokenizer = CLIPTokenizer.from_pretrained(model_key, subfolder='tokenizer')
         self.text_encoder = CLIPTextModel.from_pretrained(model_key, subfolder='text_encoder')# .to(self.device)
-        # self.image_encoder = CLIPVisionModel.from_pretrained('/home/huteng/make-it-3d/Make-It-3D-convert/transformer_model')# .to(self.device)
-        # self.text_clip_encoder = CLIPVisionModel.from_pretrained('/home/huteng/make-it-3d/Make-It-3D-convert/transformer_model')# .to(self.device)
-        # self.processor = CLIPFeatureExtractor.from_pretrained('/home/huteng/make-it-3d/Make-It-3D-convert/transformer_model')
-        # self.aug = T.Compose([T.Resize((224, 224)), T.ImageNormalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711))])  # 这个T怎么处理？
         self.mean_img = [0.48145466, 0.4578275, 0.40821073]
         self.std_img = [0.26862954, 0.26130258, 0.27577711]
         self.normalize = Normalize(self.mean_img, self.std_img)
@@ -168,7 +164,6 @@ class StableDiffusion(nn.Module):
         if (latents is None):
             latents = jt.randn(((text_embeddings.shape[0] // 2), self.unet.in_channels, (height // 8), (width // 8)))
         self.scheduler.set_timesteps(num_inference_steps)
-        # with torch.autocast('cuda'):
         for (i, t) in enumerate(self.scheduler.timesteps):
             latent_model_input = jt.concat(([latents] * 2))
             with jt.no_grad():

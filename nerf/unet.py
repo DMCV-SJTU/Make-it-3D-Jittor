@@ -27,28 +27,24 @@ class BasicBlock(nn.Module):
 
 class GatedBlock(nn.Module):
 
-    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, dilation=1, padding_mode='reflect', act_fun=nn.ELU, normalization=nn.BatchNorm2d):
+    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, dilation=1, padding_mode='reflect', act_fun=nn.ReLU, normalization=nn.BatchNorm2d):
         super().__init__()
         self.pad_mode = padding_mode
         self.filter_size = kernel_size
         self.stride = stride
         self.dilation = dilation
         n_pad_pxl = int(((self.dilation * (self.filter_size - 1)) / 2))
-        self.block = nn.ModuleDict(
-            {
-                'conv_f': nn.Conv2d(in_channels, out_channels, kernel_size, stride=stride, dilation=dilation, padding=n_pad_pxl),
-                'act_f': act_fun(),
-                'conv_m': nn.Conv2d(in_channels, out_channels, kernel_size, stride=stride, dilation=dilation, padding=n_pad_pxl),
-                'act_m': nn.Sigmoid(),
-                'norm': normalization(out_channels)
-            }
-        )
+        self.convf = nn.Conv2d(in_channels, out_channels, kernel_size, stride=stride, dilation=dilation, padding=n_pad_pxl)
+        self.act_f = act_fun()
+        self.conv_m = nn.Conv2d(in_channels, out_channels, kernel_size, stride=stride, dilation=dilation, padding=n_pad_pxl)
+        self.act_m = nn.Sigmoid()
+        self.norm = normalization(out_channels)
 
     def execute(self, x, *args, **kwargs):
-        features = self.block.act_f(self.block.conv_f(x))
-        mask = self.block.act_m(self.block.conv_m(x))
+        features = self.act_f(self.convf(x))
+        mask = self.act_m(self.conv_m(x))
         output = (features * mask)
-        output = self.block.norm(output)
+        output = self.norm(output)
         return output
 
 class DownsampleBlock(nn.Module):
@@ -72,7 +68,7 @@ class UpsampleBlock(nn.Module):
         if (upsample_mode == 'deconv'):
             self.up = nn.ConvTranspose(num_filt, out_channels, 4, stride=2, padding=1)
             self.conv = conv_block((out_channels * 2), out_channels, normalization=Identity)
-        elif ((upsample_mode == 'bilinear') or (upsample_mode == 'nearest')):
+        elif ((upsample_mode == 'bilinear') or (upsample_mode == 'nearest')):  # syh: up串一个conv是可以的,且是1.0
             self.up = nn.Sequential(nn.Upsample(scale_factor=2, mode=upsample_mode), nn.Sequential(nn.Conv(num_filt, out_channels, 3, padding=1)))
             self.conv = conv_block((out_channels * 2), out_channels, normalization=Identity)
         else:
@@ -110,7 +106,7 @@ class UNet(nn.Module):
         self.down2 = DownsampleBlock(filters[1], (filters[2] - self.num_input_channels), conv_block=self.conv_block)
         self.up2 = UpsampleBlock(filters[1], upsample_mode, conv_block=self.conv_block)
         self.up1 = UpsampleBlock(filters[0], upsample_mode, conv_block=self.conv_block)
-        self.final = nn.Sequential(nn.Conv(filters[0], num_output_channels, 1))
+        self.final = nn.Sequential(nn.Conv(filters[0], num_output_channels, 1))  # syh: sequential 串一个conv是没问题的，而且应该conv是在0.0上
         if (last_act == 'sigmoid'):
             self.final = nn.Sequential(self.final, nn.Sigmoid())
         elif (last_act == 'tanh'):
@@ -121,10 +117,10 @@ class UNet(nn.Module):
         in64 = self.start(inputs[0], mask=masks[0])
         mask = masks[1]
         down1 = self.down1(in64, mask)
-        down1 = jt.contrib.concat([down1, inputs[1]], dim=1)
+        down1 = jt.concat([down1, inputs[1]], dim=1)
         mask = masks[2]
         down2 = self.down2(down1, mask)
-        down2 = jt.contrib.concat([down2, inputs[2]], dim=1)
+        down2 = jt.concat([down2, inputs[2]], dim=1)
         up_ = down2
         up_ = self.up2(up_, down1)
         up1 = self.up1(up_, in64)

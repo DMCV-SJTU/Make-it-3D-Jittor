@@ -24,7 +24,7 @@ jt.flags.use_cuda = 1
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--text', default=None, help="text prompt")
+    parser.add_argument('--text', default='a teddy bear with a black bow', help="text prompt")
     parser.add_argument('--negative', default='', type=str, help="negative text prompt")
     parser.add_argument('--test', action='store_true', help="test mode")
     parser.add_argument('--final', action='store_true', help="final train mode")
@@ -54,9 +54,9 @@ if __name__ == '__main__':
     parser.add_argument('--upsample_steps', type=int, default=32, help="num steps up-sampled per ray (only valid when not using --cuda_ray)")
     parser.add_argument('--update_extra_interval', type=int, default=16, help="iter interval to update extra status (only valid when using --cuda_ray)")
     parser.add_argument('--max_ray_batch', type=int, default=4096, help="batch size of rays at inference to avoid OOM (only valid when not using --cuda_ray)")
-    parser.add_argument('--albedo_iters', type=int, default=10000, help="training iters that only use albedo shading")
+    parser.add_argument('--albedo_iters', type=int, default=1000, help="training iters that only use albedo shading")
     parser.add_argument('--uniform_sphere_rate', type=float, default=0.5, help="likelihood of sampling camera location uniformly on the sphere surface area")
-    parser.add_argument('--diff_iters', type=int, default=4000, help="training iters that only use albedo shading")
+    parser.add_argument('--diff_iters', type=int, default=400, help="training iters that only use albedo shading")
     parser.add_argument('--step_range', type=float, nargs='*', default=[0.2, 0.6])
     
     # model options
@@ -71,8 +71,8 @@ if __name__ == '__main__':
     parser.add_argument('--sd_version', type=str, default='2.0', choices=['1.5', '2.0'], help="stable diffusion version")
     parser.add_argument('--hf_key', type=str, default=None, help="hugging face Stable diffusion model key")
     # rendering resolution in training, decrease this if CUDA OOM.
-    parser.add_argument('--w', type=int, default=128, help="render width for NeRF in training")
-    parser.add_argument('--h', type=int, default=128, help="render height for NeRF in training")
+    parser.add_argument('--w', type=int, default=96, help="render width for NeRF in training")
+    parser.add_argument('--h', type=int, default=96, help="render height for NeRF in training")
     
     ### dataset options
     parser.add_argument('--bound', type=float, default=1, help="assume the scene is bounded in box(-bound, bound)")
@@ -228,13 +228,11 @@ if __name__ == '__main__':
     depth_prediction = depth_prediction * (1 - depth_mask) + jt.ones_like(depth_prediction) * (depth_mask)
     depth_prediction=depth_prediction.float()
     rays_alive = jt.arange(10, dtype=jt.int32)  # [N]
-    depth_prediction=jt.randn_like(depth_prediction)
     # Todo:depth_prediction
     depth_prediction = ((depth_prediction - 1.0) / (depth_prediction.max() - 1.0)) * 0.9 + 0.1
     # save_image(ori_imgs, os.path.join(opt.workspace, opt.text.replace(" ", "_") + '_ref.png'))
     model = NeRFNetwork(opt)
     for name,param in model.named_parameters():
-        print(name,param.requires_grad)
         if 'sigma_net' in name:
             param.requires_grad=True
     trainer = Trainer('df', opt, model, depth_model, guidance, 
@@ -249,12 +247,21 @@ if __name__ == '__main__':
         if opt.save_mesh:
             trainer.save_mesh(resolution=256)
             
+    if opt.refine:
+        mv_loader = NeRFDataset(opt, device=device, type='gen_mv', H=opt.H, W=opt.W, size=33).dataloader()
+        test_loader = NeRFDataset(opt, device=device, type='test', H=opt.H, W=opt.W, size=64).dataloader()
+        trainer.test(mv_loader, save_path=os.path.join(opt.workspace, 'mvimg'), write_image=True, write_video=False)
+        trainer.refine(os.path.join(opt.workspace, 'mvimg'), opt.refine_iters, test_loader)
+
     else:
         
         train_loader = NeRFDataset(opt, device=device, type='train', H=opt.h, W=opt.w, size=100).dataloader()
-        valid_loader = NeRFDataset(opt, device=device, type='val', H=opt.H, W=opt.W, size=5).dataloader()
+        # valid_loader = NeRFDataset(opt, device=device, type='val', H=opt.H, W=opt.W, size=5).dataloader()
+        # max_epoch = np.ceil(opt.iters / 100).astype(np.int32)
+        # trainer.train(train_loader, valid_loader, max_epoch)
+        test_loader = NeRFDataset(opt, device=device, type='test', H=opt.H, W=opt.W, size=33).dataloader()
         max_epoch = np.ceil(opt.iters / 100).astype(np.int32)
-        trainer.train(train_loader, valid_loader, max_epoch)
+        trainer.train(train_loader, test_loader, max_epoch)
 
         # also test
         if opt.final:

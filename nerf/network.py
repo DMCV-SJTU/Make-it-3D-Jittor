@@ -10,6 +10,32 @@ from encoding import get_encoder
 
 from .utils import safe_normalize
 
+
+def nan_to_num(
+    a,
+    nan = 0.0,
+    posinf = None,
+    neginf = None,
+):
+    assert isinstance(a, jt.Var)
+
+    if a.dtype is bool or a.dtype is int:
+        return a.clone()
+
+    if nan is None:
+        nan = 0.0
+
+    if posinf is None:
+        posinf = jt.misc.finfo(a.dtype).max
+    if neginf is None:
+        neginf = jt.misc.finfo(a.dtype).min
+    result = jt.where(jt.isnan(a), nan, a)  # type: ignore[call-overload]
+
+    result = jt.where(jt.isneginf(result), neginf, result)  # type: ignore[call-overload]
+    result = jt.where(jt.isposinf(result), posinf, result)  # type: ignore[call-overload]
+    return result
+
+
 # TODO: not sure about the details...
 class ResBlock(nn.Module):
     def __init__(self, dim_in, dim_out, bias=True):

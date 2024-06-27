@@ -90,8 +90,8 @@ class PearsonSimilarity(CosineSimilarity):
     def execute(self, x1: jt.Var, x2: jt.Var):
         x1 = x1 - x1.mean()
         x2 = x2 - x2.mean()
-        x1 = jt.normalize(x1, dim=0)
-        x2 = jt.normalize(x2, dim=0)
+        # x1 = jt.normalize(x1, dim=0)
+        # x2 = jt.normalize(x2, dim=0)
         return self.cosine_similarity(x1, x2, dim=self.dim, eps=self.eps)
 
 
@@ -300,10 +300,10 @@ class Trainer(object):
         self.scheduler_update_every_step = scheduler_update_every_step
         self.device = device
         self.console = Console()
-        self.image_encoder = CLIPVisionModelWithProjection.from_pretrained('openai/clip-vit-base-patch16')
+        self.image_encoder = CLIPVisionModelWithProjection.from_pretrained('./clip-b-16')
 
-        self.tokenizer = AutoTokenizer.from_pretrained('openai/clip-vit-base-patch16')
-        self.clip_text_model = CLIPTextModelWithProjection.from_pretrained('openai/clip-vit-base-patch16')
+        self.tokenizer = AutoTokenizer.from_pretrained('./clip-b-16')
+        self.clip_text_model = CLIPTextModelWithProjection.from_pretrained('./clip-b-16')
         self.ref_imgs = ref_imgs
         self.ori_imgs = ori_imgs
         self.depth_prediction = ref_depth
@@ -349,7 +349,7 @@ class Trainer(object):
             {'params':self.model.sigma_net.parameters(),'lr':0.001},
             {'params': self.model.encoder.parameters(), 'lr': 0.01},
         ]
-        self.optimizer = jt.nn.Adam(params,lr=0.005)
+        self.optimizer = jt.nn.Adam(params,lr=0.001)
         if lr_scheduler is None:
             self.lr_scheduler = optim.LambdaLR(self.optimizer, lr_lambda=lambda epoch: 1)  # fake scheduler
         else:
@@ -750,7 +750,6 @@ class Trainer(object):
         all_poses = []
         with jt.no_grad():
             for i, data in enumerate(loader):
-                print("{}-------".format(i))
                 preds, preds_depth, preds_mask, preds_normal = self.test_step(data)
                 # print(preds_mask)
                 mask = (preds_mask > 0.9).int()
@@ -794,8 +793,6 @@ class Trainer(object):
 
         if write_video:
             all_preds = np.stack(all_preds, axis=0)
-            print(all_preds.shape)
-            print(type(all_preds))
             print(os.path.join(save_path, f'{name}_rgb.mp4'))
             all_preds_normal = np.stack(all_preds_normal, axis=0)
             # imageio.mimwrite(os.path.join(save_path, f'{name}_normal.mp4'), all_preds_normal, fps=25, quality=8,
@@ -860,12 +857,12 @@ class Trainer(object):
         gt_mask = cv2.resize(gt_rgb[:,:,3:],(H, W))        
         gt_rgb = cv2.resize(gt_rgb[:,:,:3],(H, W))
         gt_rgb = jt.array(gt_rgb[None,...]).permute(0,3,1,2)
-        gt_rgb = gt_rgb.to(device)
+        gt_rgb.requires_grad = False
         
         kernel = np.ones(((5,5)), np.uint8) ##11
         gt_mask = cv2.erode(gt_mask,kernel,iterations=1)
         gt_mask = jt.array(gt_mask).unsqueeze(0).unsqueeze(1)
-        gt_mask = gt_mask.to(device)
+        gt_mask.requires_grad = False
         
         train_outputdir = outputdir+'/train/'
         os.makedirs(train_outputdir,exist_ok=True)
@@ -873,6 +870,8 @@ class Trainer(object):
         radius = float(radius) / float(image_size[0]) * 2.0
         unet = UNet(num_input_channels=3+16)
         unet.train()
+        for param in unet.parameters():
+            param.requires_grad = True
         cx_model = ContextualLoss(use_vgg=True, vgg_layer='relu5_4')
         
         vertices_cano = jt.array(vertices_cano)
@@ -883,26 +882,24 @@ class Trainer(object):
         vertices_color_cano.requires_grad = False
         
         feat_cano = jt.randn((vertices_color_cano.shape[0], 16))
-        vertices_color_cano = jt.array((vertices_color_cano))
-        vertices_color_novel = jt.array((vertices_color_novel))
+        feat_cano.requires_grad = True
+        vertices_color_cano = jt.array(vertices_color_cano)
+        vertices_color_cano.requires_grad = True
+        vertices_color_novel = jt.array(vertices_color_novel)
+        vertices_color_novel.requires_grad = True
         feat_novel = jt.randn((vertices_color_novel.shape[0], 16))
-        bg_feat = jt.ones((1, 19, 1, 1))
+        feat_novel.requires_grad = True
+        bg_feat = jt.array(jt.ones((1, 19, 1, 1)))
+        bg_feat.requires_grad = True
         
-        vertices_color_novel_origin = deepcopy(vertices_color_novel).to(device)
+        vertices_color_novel_origin = deepcopy(vertices_color_novel)
         vertices_color_novel_origin.requires_grad = False
-        vertices_color_cano_origin = deepcopy(vertices_color_cano).to(device)
+        vertices_color_cano_origin = deepcopy(vertices_color_cano)
         vertices_color_cano_origin.requires_grad = False
-        
-        params = [{'params': [vertices_color_novel], 'grads': jt.zeros_like(vertices_color_novel)}, \
-                {'params': [vertices_color_cano], 'grads': jt.zeros_like(vertices_color_cano)}, \
-                {'params': [feat_novel], 'grads': jt.zeros_like(feat_novel)}, \
-                {'params': [feat_cano], 'grads': jt.zeros_like(feat_cano)}, \
-                {'params': [bg_feat], 'grads': jt.zeros_like(bg_feat)}]
-        
-        for p in unet.parameters():
-            params.append({'params': p, 'grads': jt.zeros_like(p)})
-        
-        point_optimizer = jt.optim.Adam(params, 0.001, betas=(0.9, 0.99), eps=1e-15)
+
+        point_optimizer = jt.nn.Adam([vertices_color_cano, vertices_color_novel, feat_cano, feat_novel]
+                                     + unet.parameters(), 0.001, betas=(0.9, 0.99), eps=1e-15)
+
         max_pool = jt.nn.MaxPool2d(kernel_size=5, stride=1, padding=2)
         
 
@@ -928,14 +925,14 @@ class Trainer(object):
                 image_size = (h, w)
                 K_ = np.array([[focal*w, 0, 0.5*w], [0, focal*h, 0.5*h], [0, 0, 1]])
                 K_ = jt.array((K_)).float()
-                pred_rgb = render_point(all_v, all_v_color, h, w, K_, world2cam, image_size, radius, ppp, bg_feat=bg_feat)
+                pred_rgb = render_point(all_v, all_v_color, h, w, K_, world2cam, image_size, radius, ppp, bg_feat=bg_feat,debug=False)
                 scale = scale * 2
                 pred_list.append(pred_rgb)
             pred_rgb = unet(pred_list)
 
             H, W = 800, 800
             image_size = (H, W)
-            v_mask_color = jt.ones_like(all_v).float().to(device)
+            v_mask_color = jt.ones_like(all_v).float()
             pred_mask = render_point(all_v, v_mask_color, H, W, K, world2cam, image_size, radius, ppp)
             pred_mask_dilate = max_pool(pred_mask)
 
@@ -964,7 +961,7 @@ class Trainer(object):
             pbar.set_description((f"loss: {loss.item():.4f}; reg_loss: {reg_loss.item():.4f}; bg_loss: {bg_loss.item():.4f}"))
             
             point_optimizer.zero_grad()
-            loss.backward()
+            point_optimizer.backward(loss)
             point_optimizer.step()
 
             if i % 1000 == 0:
@@ -1027,7 +1024,9 @@ class Trainer(object):
                 metric.clear()
 
         self.model.train()
-
+        for name, param in self.model.named_parameters():
+            param.requires_grad = True
+        # sys.exit()
         # distributedSampler: must call set_epoch() to shuffle indices across multiple epochs
         # ref: https://pyjt.org/docs/stable/data.html
         if self.world_size > 1:
@@ -1052,7 +1051,6 @@ class Trainer(object):
             self.global_step += 1
             pred_rgbs, pred_ws, loss = self.train_step(data)
             self.optimizer.backward(loss)
-            # print('end backward')
             self.optimizer.clip_grad_norm(max_norm=10)
             self.optimizer.step()
             # if self.scheduler_update_every_step:
@@ -1127,8 +1125,8 @@ class Trainer(object):
                 save_path_depth = os.path.join(self.workspace, 'validation', f'{name}_{self.local_step:04d}_depth.png')
 
                 os.makedirs(os.path.dirname(save_path), exist_ok=True)
-                pred_depth = preds_depth.reshape(1, self.opt.H, self.opt.W, 1).permute(0, 3, 1,
-                                                                                       2).contiguous()  # [1, 1, H, W]
+                pred_depth = preds_depth.reshape(1, self.opt.H, self.opt.W, 1).permute(0, 3, 1,2).contiguous()  # [1, 1, H, W]
+
                 preds = preds.reshape(1, self.opt.H, self.opt.W, 3).permute(0, 3, 1, 2).contiguous()  # [1, 1, H, W]
 
                 jt.save_image(pred_depth[0], save_path_depth)
@@ -1204,6 +1202,10 @@ class Trainer(object):
             self.model.load_state_dict(checkpoint_dict)
             self.log("[INFO] loaded model.")
             return
+        for idx,key in enumerate(checkpoint_dict['model'].keys()):
+            params=checkpoint_dict['model'][key]
+            if idx == 3:
+                checkpoint_dict['model'][key]=params.uint8()
 
 
         self.model.load_state_dict(checkpoint_dict['model'])

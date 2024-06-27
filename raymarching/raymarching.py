@@ -5,7 +5,7 @@ import time
 from jittor import nn
 from .global_header import proj_path
 BACKEND = None
-
+import time
 jt.flags.use_cuda = 1
 
 
@@ -326,6 +326,8 @@ class _composite_rays_train(Function):
     def grad(self, grad_weights_sum, grad_depth, grad_image):
         # print("WXZ TEST: GRAD FOR COM---------------")
         # NOTE: grad_depth is not used now! It won't be propagated to sigmas.
+        #print('grad---------------------------------------',grad_weights_sum.mean(),grad_image.mean())
+        s0=time.time()
         grad_weights_sum = grad_weights_sum.contiguous()
         grad_image = grad_image.contiguous()
 
