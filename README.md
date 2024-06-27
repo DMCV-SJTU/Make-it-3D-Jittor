@@ -56,6 +56,8 @@ Other dependencies:
     pip install ./raymarching
 ```
 Training requirements
+
+Make=
 - [DPT](https://github.com/isl-org/DPT). We use an off-the-shelf single-view depth estimator DPT to predict the depth for the reference image.
   ```
   git clone https://github.com/isl-org/DPT.git
