@@ -11,9 +11,6 @@ from jittor import lr_scheduler
 from nerf.provider import NeRFDataset
 from nerf.utils import *
 
-import DPT
-from DPT.util.io import write_depth_name
-from DPT.dpt.models import DPTDepthModel
 
 from scipy.ndimage import median_filter
 from PIL import Image
@@ -121,19 +118,6 @@ if __name__ == '__main__':
 
     # load depth network
     net_w = net_h = 384
-    depth_model = DPTDepthModel(
-        path="./DPT/dpt_weights/dpt_hybrid-midas-501f0c75.pt",
-        backbone="vitb_rn50_384",
-        non_negative=True,
-        enable_attention_hooks=False,
-    )
-    depth_model.cuda()
-    depth_transform = TT.Compose(
-        [
-            TT.Resize((384, 384)),
-            TT.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-        ]
-    )
     device = 'cpu'
     if jt.flags.use_cuda == 1:
         device = 'cuda'
@@ -168,18 +152,8 @@ if __name__ == '__main__':
 
     # generated caption
     if opt.text == None:
-        print("load blip2 for image caption...")
-        processor = Blip2Processor.from_pretrained("Salesforce/blip2-opt-2.7b")
-        blip_model = Blip2ForConditionalGeneration.from_pretrained("Salesforce/blip2-opt-2.7b", torch_dtype=torch.float16).to("cuda")
-        inputs = processor(image_pil, return_tensors="pt").to("cuda", torch.float16)
-        out = blip_model.generate(**inputs)
-        caption = processor.batch_decode(out, skip_special_tokens=True)[0].strip()
-        caption = caption.replace("there is ", "")
-        caption = caption.replace("close up", "photo")
-        for d in ["black background", "white background"]:
-            if d in caption:
-                caption = caption.replace(d, "ground")
-        print("Caption: ", caption)
+        with open(os.path.join(opt.workspace, 'preprocess','prompt.txt'), 'r') as f:
+            caption = f.readline()
         opt.text = caption
 
     with open(os.path.join(opt.workspace, 'setting.txt'), 'w') as f:
@@ -207,21 +181,10 @@ if __name__ == '__main__':
     mask = (jt.array(mask)).unsqueeze(0).unsqueeze(0).to(device)
     depth_mask = mask
     
-    # depth estimation
-    with jt.no_grad():
-        ori_imgs = torch.tensor(ori_imgs.cpu().numpy()).float().cuda()
-        depth_prediction = depth_model.forward(depth_transform(ori_imgs))
-        depth_prediction = jt.array(depth_prediction.detach().cpu().numpy())
-        depth_prediction = nn.interpolate(
-            depth_prediction.unsqueeze(1),
-            size=512,
-            mode="bicubic",
-            align_corners=True,
-        ) # [1, 1, 512, 512] [80~150]
-        write_depth_name(os.path.join(opt.workspace, opt.text.replace(" ", "_") + '_depth'), depth_prediction.squeeze().cpu().numpy(), bits=2)
-        disparity = imageio.imread(os.path.join(opt.workspace, opt.text.replace(" ", "_") + '_depth.png')) / 65535.
-        disparity = median_filter(disparity, size=5)
-        depth = 1. / np.maximum(disparity, 1e-2)
+    # depth load
+    disparity = imageio.imread(os.path.join(opt.workspace, 'preprocess','depth.png'))/ 65535.
+    disparity = median_filter(disparity, size=5)
+    depth = 1. / np.maximum(disparity, 1e-2)
 
     depth_prediction = jt.array(depth)
     # normalize estimated depth
