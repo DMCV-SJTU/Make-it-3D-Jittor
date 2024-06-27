@@ -44,12 +44,9 @@ python scripts/amg.py --checkpoint <path/to/checkpoint> --model-type <model_type
 - Save the text prompt in ```preprocess/prompt.txt```.
 
 
-[//]: # (### 4. Move to your workspace)
+### 4. Move to your workspace
 
-[//]: # (After getting the depth image and mask image, perform the following command to  move all the results into your workspace:)
-
-[//]: # (  ```)
-
-[//]: # (  python3 preprocess.py)
-
-[//]: # (  ```)
+After getting the depth image and mask image, perform the following command to  move all the results into your workspace:
+```
+python3 preprocess.py --workspace ${WORKSPACE_NAME}
+```
