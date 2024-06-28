@@ -43,7 +43,7 @@ cd segment-anything
 pip install -e .
 python scripts/amg.py --checkpoint <path/to/checkpoint> --model-type vit_h --input <image_or_folder> --output ../preprocess
 ```
-- Then scale the obtained mask pixel values to the range of (0, 1) and add the foreground mask to the fourth channel of your input image to get the **'RGBA'** format, then save it in ``preprocess/your_image_name.png``
+- Then add the foreground mask to the fourth channel of your input image to get the **'RGBA'** format, then save it in ``preprocess/your_image_name.png``
 
 
 ### 3. Text prompt generation (Optional)
