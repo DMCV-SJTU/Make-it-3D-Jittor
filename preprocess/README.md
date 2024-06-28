@@ -40,7 +40,7 @@ git clone https://github.com/facebookresearch/segment-anything.git
 - By placing the [checkpoints](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth) in <path/to/checkpoint> and the input images in <image_or_folder>, you can then run:
 ```
 cd segment-anything
-python scripts/amg.py --checkpoint <path/to/checkpoint> --model-type <model_type> --input <image_or_folder> --output ./
+python scripts/amg.py --checkpoint <path/to/checkpoint> --model-type <model_type> --input <image_or_folder> --output ../preprocess
 ```
 - Then add the mask to the fourth channel of your input image to get the **'RGBA'** format, then save it in ``preprocess/your_image_name.png``
 
