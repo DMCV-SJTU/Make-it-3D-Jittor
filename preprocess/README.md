@@ -44,13 +44,6 @@ python scripts/amg.py --checkpoint <path/to/checkpoint> --model-type <model_type
 ```
 - Then add the mask to the fourth channel of your input image to get the **'RGBA'** format, then save it in ``preprocess/your_image_name.png``
 
-Take ```demo\astronaut.png``` as an example. After saving the 'RGBA'-format image in ```preprocess/astronaut.png```, you can then 
-train the coarse-stage model by running: 
-```
-python main.py --workspace astronaut --ref_path preprocess/astronaut.png --phi_range 135 225 --iters 10000 --backbone vanilla --text "an astronaut"
-```
-
-
 
 ### 3. Text prompt generation (Optional)
 
@@ -63,7 +56,7 @@ python main.py --workspace astronaut --ref_path preprocess/astronaut.png --phi_r
 
 ### 4. Move to your workspace
 
-After getting the depth image and mask image, perform the following command to  move all the results into your workspace:
+After getting the depth image and mask image, perform the following command to  move the depth image and text prompt into your workspace:
 ```
 python3 mv2workspace.py --workspace ${WORKSPACE_NAME}
 ```
@@ -80,4 +73,10 @@ Make-It-3D/
 │   │       ├── prompt.txt
 │   └── ...
 └── 
+```
+
+Take ```demo\astronaut.png``` as an example. After saving the 'RGBA'-format image in ```preprocess/astronaut.png``` and running mv2worspace.py to move ```depth.png``` and ```prompt.txt```, you can then 
+train the coarse-stage model by running: 
+```
+python main.py --workspace astronaut --ref_path preprocess/astronaut.png --phi_range 135 225 --iters 10000 --backbone vanilla
 ```
