@@ -16,10 +16,11 @@ def convert_rgb2rgba(input_path, mask_path, output_path):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    opt = parser.parse_args()
+
     parser.add_argument('--input', type=str, default=None)
     parser.add_argument('--mask', type=str, default=None)
     parser.add_argument('--output', type=str, default='preprocess')
+    opt = parser.parse_args()
     if opt.input  is None or opt.mask is None:
         print("there is no image or mask")
         sys.exit(0)
