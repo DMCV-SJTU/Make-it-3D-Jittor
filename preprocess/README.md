@@ -13,9 +13,8 @@ In our work, we use an off-the-shelf single-view depth estimator [DPT](https://g
   ```
   git clone https://github.com/isl-org/DPT.git
   cd DPT
-  mkdir dpt_weights
   ```
-- Download the pretrained model [dpt_hybrid](https://github.com/intel-isl/DPT/releases/download/1_0/dpt_hybrid-midas-501f0c75.pt), and put it in `DPT/dpt_weights`.
+- Download the pretrained model [dpt_hybrid](https://github.com/intel-isl/DPT/releases/download/1_0/dpt_hybrid-midas-501f0c75.pt), and put it in `dpt_weights`.
 
 
 - Estimate the depth for the input image by placing the input images in the folder ```input``` and then run: 
