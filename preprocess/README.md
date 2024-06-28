@@ -22,7 +22,7 @@ In our work, we use an off-the-shelf single-view depth estimator [DPT](https://g
   ```
   python run_monodepth.py
   ```
-- Then the depth map the are saved in ```preprocess/depth.png``
+- Then the depth map the are saved in ```preprocess/depth.png```
 For example, use the DPT model on teddy-bear, you will have:
 
 ![](../demo/teddy.png) <img src="../results/preprocess/teddy/depth.png" width="378" heigh="378"/>
