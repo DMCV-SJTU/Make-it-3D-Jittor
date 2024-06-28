@@ -44,6 +44,14 @@ python scripts/amg.py --checkpoint <path/to/checkpoint> --model-type <model_type
 ```
 - Then add the mask to the fourth channel of your input image to get the **'RGBA'** format, then save it in ``preprocess/your_image_name.png``
 
+Take ```demo\astronaut.png``` as an example, after saving the 'RGBA'-format image in ```preprocess/astronaut.png```, you can then 
+train the coarse-stage model by running: 
+```
+python main.py --workspace astronaut --ref_path preprocess/astronaut.png --phi_range 135 225 --iters 10000 --backbone vanilla --text "an astronaut"
+```
+
+
+
 ### 3. Text prompt generation (Optional)
 
 - You can use the downloaded [BLIP](https://github.com/salesforce/BLIP) model to estimate the prompt describing the input image. (Optional)
