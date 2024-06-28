@@ -117,7 +117,6 @@ if __name__ == '__main__':
     seed_everything(opt.seed)
 
     # load depth network
-    net_w = net_h = 384
     device = 'cpu'
     if jt.flags.use_cuda == 1:
         device = 'cuda'
@@ -182,7 +181,10 @@ if __name__ == '__main__':
     depth_mask = mask
     
     # depth load
-    disparity = imageio.imread(os.path.join(opt.workspace, 'preprocess','depth.png'))/ 65535.
+    depth_img = Image.open(os.path.join(opt.workspace, 'preprocess','depth.png')).convert('L')
+    depth_img = depth_img.resize((512, 512))
+    depth_img.save(os.path.join(opt.workspace, 'preprocess','depth.png'))
+    disparity = imageio.imread(os.path.join(opt.workspace, 'preprocess','depth.png')) / 65535.
     disparity = median_filter(disparity, size=5)
     depth = 1. / np.maximum(disparity, 1e-2)
 
@@ -198,7 +200,7 @@ if __name__ == '__main__':
     for name,param in model.named_parameters():
         if 'sigma_net' in name:
             param.requires_grad=True
-    trainer = Trainer('df', opt, model, depth_model, guidance, 
+    trainer = Trainer('df', opt, model, guidance,
                         ref_imgs=ref_imgs, ref_depth=depth_prediction, 
                         ref_mask=depth_mask, ori_imgs=ori_imgs, 
                         device=device, workspace=opt.workspace, optimizer=optimizer, ema_decay=None, fp16=opt.fp16, lr_scheduler=scheduler, use_checkpoint=opt.ckpt, eval_interval=opt.eval_interval, scheduler_update_every_step=True)
