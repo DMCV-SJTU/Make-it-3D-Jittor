@@ -20,7 +20,7 @@ In our work, we use an off-the-shelf single-view depth estimator [DPT](https://g
 
 - Estimate the depth for the input image by placing the input images in the folder ```input``` and then run: 
   ```
-  python run_monodepth.py
+  python run_monodepth.py --input_path your_image_path --output preprocess
   ```
 - Then the depth map the are saved in ```preprocess/depth.png```
 For example, use the DPT model on teddy-bear, you will have:
