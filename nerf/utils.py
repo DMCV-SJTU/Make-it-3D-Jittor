@@ -252,7 +252,6 @@ class Trainer(object):
                  name,  # name of this experiment
                  opt,  # extra conf
                  model,  # network
-                 depth_model,  # depth model
                  guidance,  # guidance network
                  ref_imgs,
                  ref_depth,
@@ -310,9 +309,6 @@ class Trainer(object):
         self.depth_mask = ref_mask
 
         self.model = model
-
-        self.depth_model = depth_model
-        self.depth_model.eval()
 
         self.depth_transform = T.Compose(
             [

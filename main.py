@@ -198,7 +198,7 @@ if __name__ == '__main__':
     for name,param in model.named_parameters():
         if 'sigma_net' in name:
             param.requires_grad=True
-    trainer = Trainer('df', opt, model, depth_model, guidance, 
+    trainer = Trainer('df', opt, model, guidance,
                         ref_imgs=ref_imgs, ref_depth=depth_prediction, 
                         ref_mask=depth_mask, ori_imgs=ori_imgs, 
                         device=device, workspace=opt.workspace, optimizer=optimizer, ema_decay=None, fp16=opt.fp16, lr_scheduler=scheduler, use_checkpoint=opt.ckpt, eval_interval=opt.eval_interval, scheduler_update_every_step=True)
