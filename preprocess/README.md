@@ -26,22 +26,25 @@ In our work, we use an off-the-shelf single-view depth estimator [DPT](https://g
 For example, use the DPT model on teddy-bear, you will have:
 
 ![](../demo/teddy.png) <img src="../results/preprocess/teddy/depth.png" width="378" heigh="378"/>
-### 2. Image segmentation
+### 2. Image segmentation (Optional)
 
-Image segmentation is needed in our work.  We use [Segment-anything-model](https://github.com/facebookresearch/segment-anything) to obtain the foreground object mask.
+The input image is required to be **'RGBA'** format, where the last channel is a mask for the foreground image.
+
+If the input image do not match the required format, you should first segment the foreground by a segmentation model (We recommend to use [Segment-anything-model](https://github.com/facebookresearch/segment-anything)).
+
 - You can use SAM to get the foreground object mask by running:
 ```
 git clone https://github.com/facebookresearch/segment-anything.git
 ```
 
-- By placing the [checkpoints](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth) in <path/to/checkpoint> the input images in <image_or_folder>, you can then run:
+- By placing the [checkpoints](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth) in <path/to/checkpoint> and the input images in <image_or_folder>, you can then run:
 ```
 cd segment-anything
 python scripts/amg.py --checkpoint <path/to/checkpoint> --model-type <model_type> --input <image_or_folder> --output ./
 ```
-- Then apply the mask on your own image to get the foreground image, then save it in ```preprocess/your_image_name.png``
+- Then add the mask to the fourth channel of your input image to get the **'RGBA'** format, then save it in ``preprocess/your_image_name.png``
 
-### 3. Text prompt generation(Optional)
+### 3. Text prompt generation (Optional)
 
 - You can use the downloaded [BLIP](https://github.com/salesforce/BLIP) model to estimate the prompt describing the input image. (Optional)
 
