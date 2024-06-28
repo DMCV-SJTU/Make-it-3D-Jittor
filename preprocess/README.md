@@ -20,7 +20,7 @@ In our work, we use an off-the-shelf single-view depth estimator [DPT](https://g
 
 - Estimate the depth for the input image by placing the input images in the folder ```input``` and then run: 
   ```
-  python run_monodepth.py --output ../preprocess
+  python run_monodepth.py --input your_input_image_fold --output ../preprocess
   ```
 - Then the depth map the are saved in ```preprocess/your_image_name.png``` in the fold ```preprocess```. Please rename the image into ```depth.png```
 For example, use the DPT model on teddy-bear, you will have:
@@ -40,6 +40,7 @@ git clone https://github.com/facebookresearch/segment-anything.git
 - By placing the [checkpoints](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth) in <path/to/checkpoint> and the input images in <image_or_folder>, you can then run:
 ```
 cd segment-anything
+pip install -e .
 python scripts/amg.py --checkpoint <path/to/checkpoint> --model-type <model_type> --input <image_or_folder> --output ../preprocess
 ```
 - Then add the mask to the fourth channel of your input image to get the **'RGBA'** format, then save it in ``preprocess/your_image_name.png``
