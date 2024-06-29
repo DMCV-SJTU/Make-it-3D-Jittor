@@ -506,30 +506,12 @@ class NeRFRenderer(nn.Module):
             # setup counter
             counter = self.step_counter[self.local_step % 16]
             counter.zero_() # set to 0
+            self.step_counter[self.local_step % 16] = counter
             self.local_step += 1
             xyzs, dirs, deltas, rays = raymarching.march_rays_train(rays_o, rays_d, self.bound, self.density_bitfield, self.cascade, self.grid_size, nears, fars, counter, self.mean_count, perturb, 128, force_all_rays, dt_gamma, max_steps)
             sigmas, rgbs, normals = self(xyzs, dirs, light_d, ratio=ambient_ratio, shading=shading)
             weights_sum, depth, image = raymarching.composite_rays_train(sigmas, rgbs, deltas, rays, T_thresh)
-            # sigmas.requires_grad=False
-            # rgbs.requires_grad = False
-            # normals.requires_grad = False
-            # loss = sigmas.mean()
-            # return loss
-            # sigmas=sigmas.detach()
-            # rgbs=rgbs.detach()
-            # optimizer = jt.nn.SGD([sigmas, rgbs], lr=1e-1)
-            # for jj in range(100):
-            #     optimizer.zero_grad()
-            #     weights_sum, depth, image = raymarching.composite_rays_train(sigmas, rgbs, deltas, rays, T_thresh)
-            #     #image1,image2,imaeg3 = raymarching.composite_rays_train(sigmas,sigmas,sigmas,sigmas,sigmas)
-            #     loss = weights_sum.mean()+depth.mean()+image.mean()
-            #     optimizer.backward(loss)
-            #     optimizer.step()
-            #     print(jj,loss,sigmas.mean(),optimizer.find_grad(sigmas))
-            # return loss
 
-            #print(weights_sum, depth, image, '00000000000000!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-            # exit()
             # normals related regularizations
             if normals is not None:
                 # orientation loss (not very exact in cuda ray mode)
@@ -644,7 +626,8 @@ class NeRFRenderer(nn.Module):
         # ema update
         valid_mask = self.density_grid >= 0
         self.density_grid[valid_mask] = jt.maximum(self.density_grid[valid_mask] * decay, tmp_grid[valid_mask])
-        self.mean_density = jt.mean(self.density_grid[valid_mask]).item()
+        density_grid = self.density_grid[valid_mask].numpy()
+        self.mean_density = density_grid.mean()
         self.iter_density += 1
         # convert to bitfield
         density_thresh = min(self.mean_density, self.density_thresh)
@@ -655,8 +638,6 @@ class NeRFRenderer(nn.Module):
         if total_step > 0:
             self.mean_count = int(self.step_counter[:total_step, 0].sum().item() / total_step)
         self.local_step = 0
-
-        # print(f'[density grid] min={self.density_grid.min().item():.4f}, max={self.density_grid.max().item():.4f}, mean={self.mean_density:.4f}, occ_rate={(self.density_grid > density_thresh).sum() / (128**3 * self.cascade):.3f} | [step counter] mean={self.mean_count}')
 
 
     def render(self, rays_o, rays_d, depth_scale=None, staged=False, max_ray_batch=4096, **kwargs):
