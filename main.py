@@ -117,7 +117,6 @@ if __name__ == '__main__':
     seed_everything(opt.seed)
 
     # load depth network
-    net_w = net_h = 384
     device = 'cpu'
     if jt.flags.use_cuda == 1:
         device = 'cuda'
@@ -182,7 +181,10 @@ if __name__ == '__main__':
     depth_mask = mask
     
     # depth load
-    disparity = imageio.imread(os.path.join(opt.workspace, 'preprocess','depth.png'))/ 65535.
+    depth_img = Image.open(os.path.join(opt.workspace, 'preprocess','depth.png')).convert('L')
+    depth_img = depth_img.resize((512, 512))
+    depth_img.save(os.path.join(opt.workspace, 'preprocess','depth.png'))
+    disparity = imageio.imread(os.path.join(opt.workspace, 'preprocess','depth.png')) / 65535.
     disparity = median_filter(disparity, size=5)
     depth = 1. / np.maximum(disparity, 1e-2)
 

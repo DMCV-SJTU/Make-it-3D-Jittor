@@ -13,19 +13,19 @@ In our work, we use an off-the-shelf single-view depth estimator [DPT](https://g
   ```
   git clone https://github.com/isl-org/DPT.git
   cd DPT
-  mkdir dpt_weights
   ```
-- Download the pretrained model [dpt_hybrid](https://github.com/intel-isl/DPT/releases/download/1_0/dpt_hybrid-midas-501f0c75.pt), and put it in `DPT/dpt_weights`.
+- Download the pretrained model [dpt_hybrid](https://github.com/intel-isl/DPT/releases/download/1_0/dpt_hybrid-midas-501f0c75.pt), and put it in `weights`.
 
+- Put your own image into the fold ```input```
 
 - Estimate the depth for the input image by placing the input images in the folder ```input``` and then run: 
   ```
-  python run_monodepth.py
+  python run_monodepth.py --input your_input_image_fold --output ../preprocess
   ```
-- Then the depth map the are saved in ```preprocess/depth.png```
+- Then the depth map the are saved in ```preprocess/your_image_name.png``` in the fold ```preprocess```. Please rename the image into ```depth.png```
 For example, use the DPT model on teddy-bear, you will have:
 
-![](../demo/teddy.png) <img src="../results/preprocess/teddy/depth.png" width="378" heigh="378"/>
+![](../demo/teddy.png) <img src="../results/teddy/preprocess/depth.png" width="378" heigh="378"/>
 ### 2. Image segmentation (Optional)
 
 The input image is required to be **'RGBA'** format, where the last channel is a mask for the foreground image.
@@ -40,9 +40,10 @@ git clone https://github.com/facebookresearch/segment-anything.git
 - By placing the [checkpoints](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth) in <path/to/checkpoint> and the input images in <image_or_folder>, you can then run:
 ```
 cd segment-anything
-python scripts/amg.py --checkpoint <path/to/checkpoint> --model-type <model_type> --input <image_or_folder> --output ./
+pip install -e .
+python scripts/amg.py --checkpoint <path/to/checkpoint> --model-type vit_h --input <image_or_folder> --output ../preprocess
 ```
-- Then add the mask to the fourth channel of your input image to get the **'RGBA'** format, then save it in ``preprocess/your_image_name.png``
+- Then add the foreground mask to the fourth channel of your input image to get the **'RGBA'** format, then save it in ``preprocess/your_image_name.png``
 
 
 ### 3. Text prompt generation (Optional)
@@ -75,8 +76,8 @@ Make-It-3D/
 └── 
 ```
 
-Take ```demo\astronaut.png``` as an example. After saving the 'RGBA'-format image in ```preprocess/astronaut.png``` and running mv2worspace.py to move ```depth.png``` and ```prompt.txt```, you can then 
+After saving the 'RGBA'-format image in ```preprocess/your_image_name.png``` and running mv2worspace.py to move ```depth.png``` and ```prompt.txt```, you can then 
 train the coarse-stage model by running: 
 ```
-python main.py --workspace astronaut --ref_path preprocess/astronaut.png --phi_range 135 225 --iters 10000 --backbone vanilla
+python main.py --workspace your_workspace_name --ref_path preprocess/your_image_name.png --phi_range 135 225 --iters 10000 --backbone vanilla
 ```
