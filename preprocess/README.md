@@ -76,8 +76,8 @@ Make-It-3D/
 └── 
 ```
 
-Take ```demo\astronaut.png``` as an example. After saving the 'RGBA'-format image in ```preprocess/astronaut.png``` and running mv2worspace.py to move ```depth.png``` and ```prompt.txt```, you can then 
+After saving the 'RGBA'-format image in ```preprocess/your_image_name.png``` and running mv2worspace.py to move ```depth.png``` and ```prompt.txt```, you can then 
 train the coarse-stage model by running: 
 ```
-python main.py --workspace astronaut --ref_path preprocess/astronaut.png --phi_range 135 225 --iters 10000 --backbone vanilla
+python main.py --workspace your_workspace_name --ref_path preprocess/your_image_name.png --phi_range 135 225 --iters 10000 --backbone vanilla
 ```
