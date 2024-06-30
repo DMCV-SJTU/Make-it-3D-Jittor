@@ -167,20 +167,19 @@ class NeRFNetwork(NeRFRenderer):
         # l: [3], plane light direction, nomalized in [-1, 1]
         # ratio: scalar, ambient ratio, 1 == no shading (albedo only), 0 == only shading (textureless)
         # optimizer = jt.optim.Adam(self.encoder.parameters(), lr=0.5)
-        if shading == 'albedo':  # syh: normal
-
+        if shading == 'albedo':
+                
+            normal = self.normal(x)
             sigma, albedo = self.common_forward(x)
 
 
             color = albedo
-
-            normal = None
-            # normal = self.normal(x)
+            
         else:
             # query normal
-
-            sigma, albedo = self.common_forward(x)
             normal = self.normal(x)
+            sigma, albedo = self.common_forward(x)
+            
 
             if normal.shape[0] < 1e6:
                 lambertian = ratio + (1 - ratio) * (normal @ l).clamp(min=0.1)  # [N,]
