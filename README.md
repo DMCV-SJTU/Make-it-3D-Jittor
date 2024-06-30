@@ -24,7 +24,7 @@ We provide [Jittor](https://github.com/Jittor/jittor) implementations for our pa
 ## Todo (Latest update: 2024/06/29)
 - [x] **Release coarse stage training code**
 - [X] **Release refine stage training code**
-- [X] **Release coarse stage training code with tcnn**
+- [X] **Release coarse stage training code with JNeRF**
 - [ ] **Release all training code (coarse + [refine stage](#refine-stage))**
 
 ## Demo of 360° geometry
@@ -95,7 +95,7 @@ python main.py --workspace teddy2 --ref_path demo/teddy-2.png --phi_range 135 22
 ```
 - If you want to run Make-It-3D  on your own example, please make sure to get depth map and mask according to the guidance in [preprocess](preprocess/README.md) before performing the training process.
 
-- To speed up training, you can simply remove the backbone keyword and use tcnn to accelerate the coarse stage. For example, run the following command to get tcnn acceleration:
+- To speed up training, you can simply remove the backbone keyword and use JNeRF to accelerate the coarse stage. For example, run the following command to get JNeRF acceleration:
 
 ```
 python main.py --workspace ${NAME} --ref_path "${IMGPATH}" --phi_range 135 225 --iters 10000 --text ${PROMPT}
