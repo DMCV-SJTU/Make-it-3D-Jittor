@@ -180,7 +180,7 @@ class NeRFRenderer(nn.Module):
                 for zi, zs in enumerate(Z):
                     xx, yy, zz = custom_meshgrid(xs, ys, zs)
                     pts = jt.concat([xx.reshape(-1, 1), yy.reshape(-1, 1), zz.reshape(-1, 1)], dim=-1) # [S, 3]
-                    val = self.density(pts.to(self.aabb_train.device))
+                    val = self.density(pts.to(self.aabb_train.device), False)
                     sigmas[xi * S: xi * S + len(xs), yi * S: yi * S + len(ys), zi * S: zi * S + len(zs)] = val['sigma'].reshape(len(xs), len(ys), len(zs)).detach().cpu().numpy() # [S, 1] --> [x, y, z]
 
         vertices, triangles = mcubes.marching_cubes(sigmas, density_thresh)
@@ -506,9 +506,10 @@ class NeRFRenderer(nn.Module):
             # setup counter
             counter = self.step_counter[self.local_step % 16]
             counter.zero_() # set to 0
+
+            xyzs, dirs, deltas, rays = raymarching.march_rays_train(rays_o, rays_d, self.bound, self.density_bitfield, self.cascade, self.grid_size, nears, fars, counter, self.mean_count, perturb, 128, force_all_rays, dt_gamma, max_steps)
             self.step_counter[self.local_step % 16] = counter
             self.local_step += 1
-            xyzs, dirs, deltas, rays = raymarching.march_rays_train(rays_o, rays_d, self.bound, self.density_bitfield, self.cascade, self.grid_size, nears, fars, counter, self.mean_count, perturb, 128, force_all_rays, dt_gamma, max_steps)
             sigmas, rgbs, normals = self(xyzs, dirs, light_d, ratio=ambient_ratio, shading=shading)
             weights_sum, depth, image = raymarching.composite_rays_train(sigmas, rgbs, deltas, rays, T_thresh)
 
@@ -619,7 +620,7 @@ class NeRFRenderer(nn.Module):
                         # add noise in [-hgs, hgs]
                         cas_xyzs += (jt.rand_like(cas_xyzs) * 2 - 1) * half_grid_size
                         # query density
-                        sigmas = self.density(cas_xyzs)['sigma'].reshape(-1).detach()
+                        sigmas = self.density(cas_xyzs, False)['sigma'].reshape(-1).detach()
                         # assign 
                         tmp_grid[cas, indices] = sigmas
         
