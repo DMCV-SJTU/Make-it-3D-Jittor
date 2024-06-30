@@ -1,0 +1,1 @@
+place pretrained clip-b/16 here.
