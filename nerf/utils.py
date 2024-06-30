@@ -580,7 +580,6 @@ class Trainer(object):
                 loss = loss + self.opt.lambda_entropy * loss_entropy
             else:
                 loss = loss + self.opt.lambda_entropy * loss_entropy * 10
-        verbose=False
         if verbose:
             print(f"loss_entropy: {loss_entropy}, loss_opacity: {loss_opacity}")
 
