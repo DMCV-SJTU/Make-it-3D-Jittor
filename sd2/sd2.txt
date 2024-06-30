@@ -1,0 +1,1 @@
+place the pretrained stable diffusion 2.o here.
