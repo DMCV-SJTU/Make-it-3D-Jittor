@@ -120,7 +120,6 @@ class NeRFNetwork(NeRFRenderer):
 
     def common_forward(self, x, is_grad=True):
         # x: [N, 3], in [-bound, bound]
-        print(is_grad)
         # sigma
         h = (x + self.bound) / (2 * self.bound)
 
@@ -161,25 +160,32 @@ class NeRFNetwork(NeRFRenderer):
 
         return normal
 
-    def execute(self, x, d, l=None, ratio=1, shading='albedo'):
+    def execute(self, x, d, l=None, ratio=1, shading='albedo', is_test=False):
         # x: [N, 3], in [-bound, bound]
         # d: [N, 3], view direction, nomalized in [-1, 1]
         # l: [3], plane light direction, nomalized in [-1, 1]
         # ratio: scalar, ambient ratio, 1 == no shading (albedo only), 0 == only shading (textureless)
         # optimizer = jt.optim.Adam(self.encoder.parameters(), lr=0.5)
         if shading == 'albedo':  # syh: normal
-            normal = self.normal(x)
+            # normal = self.normal(x)
+            if is_test:
+                normal = self.normal(x)
+            else:
+                normal = None
             sigma, albedo = self.common_forward(x)
 
 
             color = albedo
 
-            # normal = self.normal(x)
+
         else:
             # query normal
-
+            if is_test:
+                normal = self.normal(x)
+            else:
+                normal = None
             sigma, albedo = self.common_forward(x)
-            normal = self.normal(x)
+
 
             if normal.shape[0] < 1e6:
                 lambertian = ratio + (1 - ratio) * (normal @ l).clamp(min=0.1)  # [N,]
@@ -196,7 +202,9 @@ class NeRFNetwork(NeRFRenderer):
 
     def density(self, x, is_grad=True):
         # x: [N, 3], in [-bound, bound]
-        sigma, albedo = self.common_forward(x, is_grad)
+        # print(x)
+        # print("WXZ TEST DENSITY!=====")
+        sigma, albedo = self.common_forward(x, is_grad)  
         # print(sigma)
         return {
             'sigma': sigma,
