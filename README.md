@@ -72,6 +72,8 @@ After getting the ```makeit3d_requirement``` fold, you need to compile all of th
 ```
 pip install -e .
 ```
+Note: Due to the dependencies between the components, it is best to compile in the order shown in the above diagram.
+
 ### 3. Install other dependencies 
 Other dependencies:
 ```
