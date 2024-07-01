@@ -46,6 +46,10 @@ Please download the requirement folds from [here](https://drive.google.com/drive
 ```
 makeit3d_requirement/
 │
+├── jittor-1.3.9.7/
+│   ├── setup.py
+│   └── ...
+| 
 ├── diffuser_jittor/
 │   ├── setup.py
 │   └── ...
