@@ -49,22 +49,23 @@ makeit3d_requirement/
 ├── jittor-1.3.9.7/
 │   ├── setup.py
 │   └── ...
-| 
-├── diffuser_jittor/
-│   ├── setup.py
-│   └── ...
-|   
-├── JDiffusion/
-│   ├── setup.py
-│   └── ...
-| 
+|
 ├── jtorch/
 │   ├── setup.py
 |   └── ...
 |
+├── diffuser_jittor/
+│   ├── setup.py
+│   └── ...
+| 
 ├── transformers_jittor/
 │   ├── setup.py
 |   └── ...
+| 
+├── JDiffusion/
+│   ├── setup.py
+│   └── ...
+| 
 ```
 ### 2. Compile the jittor-related libraries.
 After getting the ```makeit3d_requirement``` fold, you need to compile all of them. Please run the following command in the same directory as setup.py file in each libraries mentioned above:
