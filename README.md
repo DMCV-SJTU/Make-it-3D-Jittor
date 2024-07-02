@@ -70,6 +70,22 @@ makeit3d_requirement/
 ### 2. Compile the jittor-related libraries.
 After getting the ```makeit3d_requirement``` fold, you need to compile all of them. Please run the following command in the same directory as setup.py file in each libraries mentioned above:
 ```
+cd jittor-1.3.9.7
+pip install -e .
+
+cd jtorch
+pip install -e .
+
+cd diffuser_jittor
+pip install -e .
+
+cd transformers_jittor
+pip install -e .
+
+cd JDiffusion
+pip install -e .
+
+cd JNeRF
 pip install -e .
 ```
 Note: Due to the dependencies between the components, it is best to compile in the order shown in the above diagram.
