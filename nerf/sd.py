@@ -11,7 +11,6 @@ from JDiffusion.utils import randn_tensor
 from jittor import nn
 import time
 import os
-import clip
 from jittor import Function
 
 
