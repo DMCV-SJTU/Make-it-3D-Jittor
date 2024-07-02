@@ -65,7 +65,7 @@ makeit3d_requirement/
 ├── JDiffusion/
 │   ├── setup.py
 │   └── ...
-| 
+└── ...
 ```
 ### 2. Compile the jittor-related libraries.
 After getting the ```makeit3d_requirement``` fold, you need to compile all of them. Please run the following command in the same directory as setup.py file in each libraries mentioned above:
