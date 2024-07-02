@@ -65,6 +65,10 @@ makeit3d_requirement/
 ├── JDiffusion/
 │   ├── setup.py
 │   └── ...
+|
+├── JNeRF/
+│   ├── setup.py
+│   └── ...
 └── ...
 ```
 ### 2. Compile the jittor-related libraries.
