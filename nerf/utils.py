@@ -342,7 +342,7 @@ class Trainer(object):
         else:
             self.optimizer = optimizer(self.model)
         
-        if self.opt.args.backbone == 'vanilla':
+        if self.opt.backbone == 'vanilla':
             params=[
                 {'params':self.model.sigma_net.parameters(),'lr':0.001},
                 {'params': self.model.encoder.parameters(), 'lr': 0.001},
