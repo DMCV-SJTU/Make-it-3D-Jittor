@@ -4,7 +4,6 @@ from jittor import Function as F
 
 from activation import trunc_exp
 from .renderer import NeRFRenderer
-
 import numpy as np
 from encoding import get_encoder
 
@@ -234,7 +233,7 @@ class NeRFNetwork(NeRFRenderer):
         return sigma, color, normal
 
       
-    def density(self, x):
+    def density(self, x, is_grad=False):
         # x: [N, 3], in [-bound, bound]
         
         sigma, albedo = self.common_forward(x)
