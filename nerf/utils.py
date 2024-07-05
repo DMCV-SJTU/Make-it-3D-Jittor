@@ -341,11 +341,19 @@ class Trainer(object):
             self.optimizer = optim.Adam(self.model.parameters(), lr=0.001, weight_decay=5e-4)  # naive adam
         else:
             self.optimizer = optimizer(self.model)
-        params=[
-            {'params':self.model.sigma_net.parameters(),'lr':0.001},
-            {'params': self.model.encoder.parameters(), 'lr': 0.01},
-        ]
-        self.optimizer = jt.nn.Adam(params,lr=0.001)
+        
+        if self.opt.args.backbone == 'vanilla':
+            params=[
+                {'params':self.model.sigma_net.parameters(),'lr':0.001},
+                {'params': self.model.encoder.parameters(), 'lr': 0.001},
+            ]
+            self.optimizer = jt.nn.Adam(params,lr=0.001)
+        else:
+            params = [
+                {'params': self.model.sigma_net.parameters(), 'lr': 0.05},
+                {'params': self.model.encoder.parameters(), 'lr': 0.5},
+            ]
+            self.optimizer = jt.nn.Adam(params, lr=0.05)
         if lr_scheduler is None:
             self.lr_scheduler = optim.LambdaLR(self.optimizer, lr_lambda=lambda epoch: 1)  # fake scheduler
         else:
