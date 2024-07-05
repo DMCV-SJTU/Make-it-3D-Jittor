@@ -974,7 +974,7 @@ class Trainer(object):
                 'optimizer_state_dict': point_optimizer.state_dict(),
                 }, outputdir + f'/end_unet.pth')
         
-        # unet.eval()
+        unet.eval()
         # evaluation
         all_transformed_src_alpha = []
         white_bg = jt.ones((1, 19, 1, 1)).to(device)
