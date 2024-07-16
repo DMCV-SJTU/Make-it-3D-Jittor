@@ -21,3 +21,4 @@ torchmetrics
 tensorboard
 torch-ema
 cupy
+scikit-image    
