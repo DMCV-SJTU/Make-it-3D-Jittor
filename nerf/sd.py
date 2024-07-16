@@ -22,11 +22,10 @@ def seed_everything(seed):
 class _backward_fun(Function):
     def execute(self, x, grad0):
         self.grad0 = grad0
-        return jt.Var(1.0)
-        #return x.mean()
+        return x.mean()
 
     def grad(self, g):
-        grad = self.grad0
+        grad0 = self.grad0
         return g * (grad), None
 
 
