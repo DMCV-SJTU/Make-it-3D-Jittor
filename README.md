@@ -25,7 +25,7 @@ We provide [Jittor](https://github.com/Jittor/jittor) implementations for our pa
 - [x] **Release coarse stage training code**
 - [X] **Release refine stage training code**
 - [X] **Release coarse stage training code with Instant NGP**
-- [ ] **Release all training code (coarse + [refine stage](#refine-stage))**
+- [X] **Release all training code (coarse + [refine stage](#refine-stage))**
 
 ## Demo of 360° geometry
 <div class="half">
@@ -58,7 +58,7 @@ makeit3d_requirement/
 │   ├── setup.py
 │   └── ...
 | 
-├── transformers_jittor/
+├── jclip/
 │   ├── setup.py
 |   └── ...
 | 
@@ -94,22 +94,21 @@ pip install -r requirements.txt
 ### Coarse stage
 We use progressive training strategy to generate a full 360° 3D geometry. Run the command and modify the workspace name `NAME`, the path of the reference image `IMGPATH` and the prompt `PROMPT` describing the image . We first optimize the scene under frontal camera views. 
 ```
-python main.py --workspace ${NAME} --ref_path "${IMGPATH}" --phi_range 135 225 --iters 10000 --backbone vanilla --text ${PROMPT}
+python main.py --workspace ${NAME} --ref_path "${IMGPATH}" --phi_range 135 225 --iters 2000 --text ${PROMPT}
 ``` 
 We have proposed the example fold in the fold ```results```, you can run the following command for a quick start:
 ```
-python main.py --workspace teddy --ref_path demo/teddy.png --phi_range 135 225 --iters 10000 --backbone vanilla --text "a teddy bear"
+python main.py --workspace teddy --ref_path demo/teddy.png --phi_range 135 225 --iters 2000 --text "a teddy bear"
 ```
 
 ```
-python main.py --workspace teddy2 --ref_path demo/teddy-2.png --phi_range 135 225 --iters 10000 --backbone vanilla --text "a teddy bear"
+python main.py --workspace teddy2 --ref_path demo/teddy-2.png --phi_range 135 225 --iters 2000 --text "a teddy bear"
 ```
 - If you want to run Make-It-3D  on your own example, please make sure to get depth map and mask according to the guidance in [preprocess](preprocess/README.md) before performing the training process.
 
-- To speed up training, you can simply remove the backbone keyword and use Instant NGP to accelerate the coarse stage. For example, run the following command to get Instant NGP acceleration:
-
+- We also provide a vanila nerf for makeit3d:
 ```
-python main.py --workspace ${NAME} --ref_path "${IMGPATH}" --phi_range 135 225 --iters 10000 --text ${PROMPT}
+python main.py --workspace ${NAME} --ref_path "${IMGPATH}" --phi_range 135 225  --backbone vanila --iters 10000 --text ${PROMPT}
 ``` 
 ---
 
