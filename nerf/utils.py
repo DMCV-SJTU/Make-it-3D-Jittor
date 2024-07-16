@@ -297,7 +297,7 @@ class Trainer(object):
         self.device = device
 
         self.console = Console()
-        self.clip_model, self.clip_preprocess = clip.load("ViT-B-16.pkl")
+        self.clip_model, self.clip_preprocess = clip.load("/home/huteng/xception/Make-it-3D-Jittor-master/ViT-B-16.pkl")
         self.ref_imgs = ref_imgs
         self.ori_imgs = ori_imgs
         self.depth_prediction = ref_depth
@@ -548,7 +548,7 @@ class Trainer(object):
         # _t = time.time()
         outputs = self.model.render(rays_o, rays_d, depth_scale=depth_scale,
                                     bg_color=bg_color, staged=False, perturb=True, ambient_ratio=ambient_ratio,
-                                    shading=shading, force_all_rays=True, step=self.global_step, **vars(self.opt))
+                                    shading=shading, force_all_rays=True, **vars(self.opt))
         pred_rgb = outputs['image'].reshape(B, H, W, 3).permute(0, 3, 1, 2).contiguous()  # [1, 3, H, W]
         pred_depth = outputs['depth'].reshape(B, H, W, 1).permute(0, 3, 1, 2).contiguous()  # [1, 1, H, W]
         pred_ws = outputs['weights_sum'].reshape(B, 1, H, W)
@@ -565,7 +565,7 @@ class Trainer(object):
         else:
             loss, de_imgs = self.guidance.train_step(text_z, pred_rgb, clip_model=self.clip_model,
                                                      ref_text=text, islarge=data['is_large'], ref_rgb=gt_rgb,
-                                                     guidance_scale=self.opt.guidance_scale, step=self.global_step)
+                                                     guidance_scale=self.opt.guidance_scale)
 
         if self.opt.lambda_opacity > 0:
             loss_opacity = (pred_ws ** 2).mean()
@@ -1048,7 +1048,7 @@ class Trainer(object):
         for data in loader:
 
             if self.model.cuda_ray and self.global_step % self.opt.update_extra_interval == 0:  # syh: 这里大概是1001，不走
-                self.model.update_extra_state(step=self.global_step)
+                self.model.update_extra_state()
 
             self.local_step += 1
             self.global_step += 1
