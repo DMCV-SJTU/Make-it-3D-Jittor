@@ -1,14 +1,14 @@
 import os
 import glob
 import sys
-
+import torch
 import tqdm
 import math
 import imageio
 import random
 import warnings
 # import tensorboardX
-
+import wandb
 import numpy as np
 import pandas as pd
 
@@ -25,18 +25,15 @@ from nerf.refine_utils import *
 from nerf.unet import UNet
 import mcubes
 from rich.console import Console
-
+import jclip as clip
 # from torch_ema import ExponentialMovingAverage
 
 jt.flags.use_cuda = 1
 
-# import clip
 import jittor.transform as T
 from contextual_loss.contextual import ContextualLoss
 from packaging import version as pver
 from copy import deepcopy
-# from nerf.provider import NeRFDataset
-from transformers import CLIPVisionModelWithProjection, CLIPFeatureExtractor, CLIPTextModelWithProjection, AutoTokenizer
 
 
 class Resize(nn.Module):
@@ -298,11 +295,9 @@ class Trainer(object):
         self.time_stamp = time.strftime("%Y-%m-%d_%H-%M-%S")
         self.scheduler_update_every_step = scheduler_update_every_step
         self.device = device
-        self.console = Console()
-        self.image_encoder = CLIPVisionModelWithProjection.from_pretrained('./clip-b-16')
 
-        self.tokenizer = AutoTokenizer.from_pretrained('./clip-b-16')
-        self.clip_text_model = CLIPTextModelWithProjection.from_pretrained('./clip-b-16')
+        self.console = Console()
+        self.clip_model, self.clip_preprocess = clip.load("ViT-B-16.pkl")
         self.ref_imgs = ref_imgs
         self.ori_imgs = ori_imgs
         self.depth_prediction = ref_depth
@@ -350,10 +345,10 @@ class Trainer(object):
             self.optimizer = jt.nn.Adam(params,lr=0.001)
         else:
             params = [
-                {'params': self.model.sigma_net.parameters(), 'lr': 0.05},
-                {'params': self.model.encoder.parameters(), 'lr': 0.5},
+                {'params': self.model.sigma_net.parameters(), 'lr': 0.001},
+                {'params': self.model.encoder.parameters(), 'lr': 0.01},
             ]
-            self.optimizer = jt.nn.Adam(params, lr=0.05)
+            self.optimizer = jt.nn.Adam(params, lr=0.01)
         if lr_scheduler is None:
             self.lr_scheduler = optim.LambdaLR(self.optimizer, lr_lambda=lambda epoch: 1)  # fake scheduler
         else:
@@ -489,10 +484,10 @@ class Trainer(object):
     def img_clip_loss(self, rgb1, rgb2):
         rgb1 = nn.resize(rgb1, (224, 224))
         rgb1 = self.normalize(rgb1)
-        image_z_1 = self.image_encoder(rgb1)[0]
+        image_z_1 = self.clip_model.encode_image(rgb1)
         rgb2 = nn.resize(rgb2, (224, 224))
         rgb2 = self.normalize(rgb2)
-        image_z_2 = self.image_encoder(rgb2)[0]
+        image_z_2 = self.clip_model.encode_image(rgb2)[0]
         image_z_1 = (image_z_1 / image_z_1.norm(dim=(- 1), keepdim=True))
         image_z_2 = (image_z_2 / image_z_2.norm(dim=(- 1), keepdim=True))
         loss = (- (image_z_1 * image_z_2).sum((- 1)).mean())
@@ -501,11 +496,10 @@ class Trainer(object):
     def img_text_clip_loss(self, rgb, prompt):
         rgb = nn.resize(rgb, (224, 224))
         rgb = self.normalize(rgb)
-        image_z_1 = self.image_encoder(rgb)[0]
+        image_z_1 = self.clip_model.encode_image(rgb)
         image_z_1 = (image_z_1 / image_z_1.norm(dim=(- 1), keepdim=True))
-        text = self.tokenizer(prompt, padding='max_length', max_length=self.tokenizer.model_max_length,
-                              return_tensors='pt')  # .to(self.device)
-        text_z = self.clip_text_model(text.input_ids)[0]
+        text = clip.tokenize(prompt)
+        text_z = self.clip_model.encode_text(text)
         text_z = (text_z / text_z.norm(dim=(- 1), keepdim=True))
         loss = (- (image_z_1 * text_z).sum((- 1)).mean())
         return loss
@@ -525,8 +519,7 @@ class Trainer(object):
         B, N = rays_o.shape[:2]
         H, W = data['H'], data['W']
         # print(data['is_front'])
-        self.opt.albedo_iters=1000000
-        self.opt.diff_iters=4000
+
         if self.global_step < self.opt.albedo_iters or data['is_front']:
             shading = 'albedo'
             ambient_ratio = 1.0
@@ -555,10 +548,11 @@ class Trainer(object):
         # _t = time.time()
         outputs = self.model.render(rays_o, rays_d, depth_scale=depth_scale,
                                     bg_color=bg_color, staged=False, perturb=True, ambient_ratio=ambient_ratio,
-                                    shading=shading, force_all_rays=True, **vars(self.opt))
+                                    shading=shading, force_all_rays=True, step=self.global_step, **vars(self.opt))
         pred_rgb = outputs['image'].reshape(B, H, W, 3).permute(0, 3, 1, 2).contiguous()  # [1, 3, H, W]
         pred_depth = outputs['depth'].reshape(B, H, W, 1).permute(0, 3, 1, 2).contiguous()  # [1, 1, H, W]
         pred_ws = outputs['weights_sum'].reshape(B, 1, H, W)
+        # loss_ = pred_ws.mean()
         if data['is_large']:
             text_z = self.text_z[1]
             text = self.text[1]
@@ -566,15 +560,18 @@ class Trainer(object):
             text_z = self.text_z[0]
             text = self.text[0]
         if self.global_step < self.opt.diff_iters or data['is_front']:
-            loss = 0
+            loss = jt.array([0.])
             de_imgs = None
         else:
-            loss, de_imgs = self.guidance.train_step(text_z, pred_rgb, clip_text_model=self.clip_text_model,
-                                                     image_encoder=self.image_encoder,
-                                                     tokenizer=self.tokenizer, ref_text=text, islarge=data['is_large'],
-                                                     ref_rgb=gt_rgb, guidance_scale=self.opt.guidance_scale)
+            loss, de_imgs = self.guidance.train_step(text_z, pred_rgb, clip_model=self.clip_model,
+                                                     ref_text=text, islarge=data['is_large'], ref_rgb=gt_rgb,
+                                                     guidance_scale=self.opt.guidance_scale, step=self.global_step)
+         
+
+        self.wandb_recorder.log({'loss_guidance': loss.item()})
         if self.opt.lambda_opacity > 0:
             loss_opacity = (pred_ws ** 2).mean()
+            self.wandb_recorder.log({'loss_opacity': loss_opacity.item()})
             if data['is_large']:
                 loss = loss + self.opt.lambda_opacity * loss_opacity * 10
             else:
@@ -584,6 +581,7 @@ class Trainer(object):
             alphas = (pred_ws).clamp(1e-5, 1 - 1e-5)
             # alphas = alphas ** 2 # skewed entropy, favors 0 over 1
             loss_entropy = (- alphas * jt.log2(alphas) - (1 - alphas) * jt.log2(1 - alphas)).mean()
+            self.wandb_recorder.log({'loss_entropy': loss_entropy.item()})
             if self.global_step < self.opt.diff_iters:
                 loss = loss + self.opt.lambda_entropy * loss_entropy
             else:
@@ -593,6 +591,7 @@ class Trainer(object):
 
         if self.opt.lambda_orient > 0 and 'loss_orient' in outputs:
             loss_orient = outputs['loss_orient']
+            self.wandb_recorder.log({'loss_orient': loss_orient.item()})
             loss = loss + self.opt.lambda_orient * loss_orient
             if self.global_step < self.opt.diff_iters:
                 loss = loss + self.opt.lambda_orient * loss_orient
@@ -601,12 +600,15 @@ class Trainer(object):
 
         if self.opt.lambda_smooth > 0 and 'loss_smooth' in outputs:
             loss_smooth = outputs['loss_smooth']
+            self.wandb_recorder.log({'loss_smooth': loss_smooth.item()})
             loss = loss + self.opt.lambda_smooth * loss_smooth
 
         pred_rgb = jt.nn.interpolate(pred_rgb, (512, 512), mode='bilinear', align_corners=True)
         pred_depth = jt.nn.interpolate(pred_depth, (512, 512), mode='bilinear', align_corners=True)
+
         if data['is_front']:
             loss_ref = self.opt.lambda_img * self.img_loss(pred_rgb, gt_rgb)
+
             loss_depth = self.opt.lambda_depth * self.depth_loss(self.pearson, pred_depth, self.depth_prediction,
                                                                  1 - self.depth_mask)
             if verbose:
@@ -617,8 +619,8 @@ class Trainer(object):
             loss_ref = self.opt.lambda_clip * self.img_clip_loss(pred_rgb,
                                                                  gt_rgb) + self.opt.lambda_clip * self.img_text_clip_loss(
                 pred_rgb, text)
-
-        if self.global_step % 100 == 0 or self.global_step == 1:
+        self.wandb_recorder.log({'loss_ref': loss_ref.item()})
+        if self.global_step % 10 == 0 or self.global_step == 1:
             jt.save_image(pred_rgb[0], os.path.join(self.img_path, f'{self.global_step}.png'))
             jt.save_image(gt_rgb[0], os.path.join(self.img_path, f'{self.global_step}_gt.png'))
             jt.save_image(pred_depth[0].repeat(3, 1, 1), os.path.join(self.img_path, f'{self.global_step}_depth.png'))
@@ -706,15 +708,12 @@ class Trainer(object):
 
         start_t = time.time()
 
+
         for epoch in range(self.epoch + 1, max_epochs + 1):
 
             self.epoch = epoch
             self.train_one_epoch(train_loader)
-            # if self.epoch % self.eval_interval == 0:
-            #     self.test(valid_loader, write_video=True, write_image=False)
-                # self.evaluate_one_epoch(valid_loader)
-                # self.save_checkpoint(full=False, best=False)
-                # self.save_checkpoint(full=False, best=True)
+
             self.save_checkpoint(full=False, best=False)  # syh: 怎么保存
 
         end_t = time.time()
@@ -1028,7 +1027,10 @@ class Trainer(object):
 
         self.model.train()
         for name, param in self.model.named_parameters():
-            param.requires_grad = True
+            if name != 'step_counter':
+                param.requires_grad = True
+            else:
+                param.requires_grad = False
         # sys.exit()
         # distributedSampler: must call set_epoch() to shuffle indices across multiple epochs
         # ref: https://pyjt.org/docs/stable/data.html
@@ -1042,13 +1044,9 @@ class Trainer(object):
         self.local_step = 0
 
         for data in loader:
-            # print(self.global_step, '--------------------------------')
-            # if self.global_step>1:
-            #     for name,param in self.model.named_parameters():
-            #         print(name,param.mean())
-            # update grid every 16 steps
-            if self.model.cuda_ray and self.global_step % self.opt.update_extra_interval == 0:
-                self.model.update_extra_state()
+
+            if self.model.cuda_ray and self.global_step % self.opt.update_extra_interval == 0:  # syh: 这里大概是1001，不走
+                self.model.update_extra_state(step=self.global_step)
 
             self.local_step += 1
             self.global_step += 1
@@ -1056,10 +1054,11 @@ class Trainer(object):
             self.optimizer.backward(loss)
             self.optimizer.clip_grad_norm(max_norm=10)
             self.optimizer.step()
+            
             # if self.scheduler_update_every_step:
             #     self.lr_scheduler.step()
 
-            loss_val = loss.detach().item()
+            loss_val = loss.item()
             total_loss += loss_val
             if self.local_rank == 0:
                 # if self.use_tensorboardX:
@@ -1073,9 +1072,9 @@ class Trainer(object):
                     pbar.set_description(f"loss={loss_val:.4f} ({total_loss / self.local_step:.4f})")
                 pbar.update(loader.batch_size)
             # return
+
         if self.ema is not None:
             self.ema.update()
-
         average_loss = total_loss / self.local_step
         self.stats["loss"].append(average_loss)
 
@@ -1205,7 +1204,7 @@ class Trainer(object):
             self.model.load_state_dict(checkpoint_dict)
             self.log("[INFO] loaded model.")
             return
-        for idx,key in enumerate(checkpoint_dict['model'].keys()):
+        for idx, key in enumerate(checkpoint_dict['model'].keys()):
             params=checkpoint_dict['model'][key]
             if idx == 3:
                 checkpoint_dict['model'][key]=params.uint8()
