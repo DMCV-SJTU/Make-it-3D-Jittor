@@ -8,7 +8,6 @@ import imageio
 import random
 import warnings
 # import tensorboardX
-import wandb
 import numpy as np
 import pandas as pd
 
@@ -26,6 +25,7 @@ from nerf.unet import UNet
 import mcubes
 from rich.console import Console
 import jclip as clip
+
 # from torch_ema import ExponentialMovingAverage
 
 jt.flags.use_cuda = 1
@@ -336,13 +336,13 @@ class Trainer(object):
             self.optimizer = optim.Adam(self.model.parameters(), lr=0.001, weight_decay=5e-4)  # naive adam
         else:
             self.optimizer = optimizer(self.model)
-        
+
         if self.opt.backbone == 'vanilla':
-            params=[
-                {'params':self.model.sigma_net.parameters(),'lr':0.001},
+            params = [
+                {'params': self.model.sigma_net.parameters(), 'lr': 0.001},
                 {'params': self.model.encoder.parameters(), 'lr': 0.001},
             ]
-            self.optimizer = jt.nn.Adam(params,lr=0.001)
+            self.optimizer = jt.nn.Adam(params, lr=0.001)
         else:
             params = [
                 {'params': self.model.sigma_net.parameters(), 'lr': 0.001},
@@ -566,12 +566,10 @@ class Trainer(object):
             loss, de_imgs = self.guidance.train_step(text_z, pred_rgb, clip_model=self.clip_model,
                                                      ref_text=text, islarge=data['is_large'], ref_rgb=gt_rgb,
                                                      guidance_scale=self.opt.guidance_scale, step=self.global_step)
-         
 
-        self.wandb_recorder.log({'loss_guidance': loss.item()})
         if self.opt.lambda_opacity > 0:
             loss_opacity = (pred_ws ** 2).mean()
-            self.wandb_recorder.log({'loss_opacity': loss_opacity.item()})
+
             if data['is_large']:
                 loss = loss + self.opt.lambda_opacity * loss_opacity * 10
             else:
@@ -581,7 +579,6 @@ class Trainer(object):
             alphas = (pred_ws).clamp(1e-5, 1 - 1e-5)
             # alphas = alphas ** 2 # skewed entropy, favors 0 over 1
             loss_entropy = (- alphas * jt.log2(alphas) - (1 - alphas) * jt.log2(1 - alphas)).mean()
-            self.wandb_recorder.log({'loss_entropy': loss_entropy.item()})
             if self.global_step < self.opt.diff_iters:
                 loss = loss + self.opt.lambda_entropy * loss_entropy
             else:
@@ -591,7 +588,6 @@ class Trainer(object):
 
         if self.opt.lambda_orient > 0 and 'loss_orient' in outputs:
             loss_orient = outputs['loss_orient']
-            self.wandb_recorder.log({'loss_orient': loss_orient.item()})
             loss = loss + self.opt.lambda_orient * loss_orient
             if self.global_step < self.opt.diff_iters:
                 loss = loss + self.opt.lambda_orient * loss_orient
@@ -600,7 +596,6 @@ class Trainer(object):
 
         if self.opt.lambda_smooth > 0 and 'loss_smooth' in outputs:
             loss_smooth = outputs['loss_smooth']
-            self.wandb_recorder.log({'loss_smooth': loss_smooth.item()})
             loss = loss + self.opt.lambda_smooth * loss_smooth
 
         pred_rgb = jt.nn.interpolate(pred_rgb, (512, 512), mode='bilinear', align_corners=True)
@@ -619,7 +614,6 @@ class Trainer(object):
             loss_ref = self.opt.lambda_clip * self.img_clip_loss(pred_rgb,
                                                                  gt_rgb) + self.opt.lambda_clip * self.img_text_clip_loss(
                 pred_rgb, text)
-        self.wandb_recorder.log({'loss_ref': loss_ref.item()})
         if self.global_step % 10 == 0 or self.global_step == 1:
             jt.save_image(pred_rgb[0], os.path.join(self.img_path, f'{self.global_step}.png'))
             jt.save_image(gt_rgb[0], os.path.join(self.img_path, f'{self.global_step}_gt.png'))
@@ -708,9 +702,7 @@ class Trainer(object):
 
         start_t = time.time()
 
-
         for epoch in range(self.epoch + 1, max_epochs + 1):
-
             self.epoch = epoch
             self.train_one_epoch(train_loader)
 
@@ -812,8 +804,8 @@ class Trainer(object):
     def refine(self, load_dir, train_iters, test_loader):
 
         load_data_folder = load_dir
-        outputdir = load_dir.replace("mvimg", "refine")  
-        os.makedirs(outputdir,exist_ok=True)
+        outputdir = load_dir.replace("mvimg", "refine")
+        os.makedirs(outputdir, exist_ok=True)
         text = self.opt.text
         image_path = self.opt.ref_path
         fov = self.opt.fov
@@ -821,68 +813,72 @@ class Trainer(object):
         device = 'cuda'
         # Camera intrincs and extrincs
         focal = 1 / (2 * np.tan(np.deg2rad(fov) / 2))
-        K = np.array([[focal*W, 0, 0.5*W], [0, focal*H, 0.5*H], [0, 0, 1]])
-        cam_files = sorted(glob.glob(load_data_folder+'/*poses.npy'))
+        K = np.array([[focal * W, 0, 0.5 * W], [0, focal * H, 0.5 * H], [0, 0, 1]])
+        cam_files = sorted(glob.glob(load_data_folder + '/*poses.npy'))
         cam_file = cam_files[0]
         cam2world_list = np.load(cam_file)
-        cam2world_cano = cam2world_list[(cam2world_list.shape[0]-1)//2]
+        cam2world_cano = cam2world_list[(cam2world_list.shape[0] - 1) // 2]
         image_size = [H, W]
-        radius = 2 #8 # points radius in pixel coordinate
-        ppp = 8 # points per pixels, for z_buffer
-        
-        gt_rgb = imageio.imread(image_path)/255.
-        gt_rgb = cv2.resize(gt_rgb[:,:,:3],(H, W))
-        
+        radius = 2  # 8 # points radius in pixel coordinate
+        ppp = 8  # points per pixels, for z_buffer
+
+        gt_rgb = imageio.imread(image_path) / 255.
+        gt_rgb = cv2.resize(gt_rgb[:, :, :3], (H, W))
+
         # load images
-        depth_files = sorted(glob.glob(load_data_folder+'/*depth.png'))
-        mask_files = sorted(glob.glob(load_data_folder+'/*mask.png'))
-        rgb_files = sorted(glob.glob(load_data_folder+'/*rgb.png'))
-        
-        vertices_cano, vertices_color_cano, vertices_novel, vertices_color_novel = load_views(gt_rgb, rgb_files, depth_files, mask_files, cam2world_list, H, W, K, radius, ppp, outputdir, device)
-        
+        depth_files = sorted(glob.glob(load_data_folder + '/*depth.png'))
+        mask_files = sorted(glob.glob(load_data_folder + '/*mask.png'))
+        rgb_files = sorted(glob.glob(load_data_folder + '/*rgb.png'))
+
+        vertices_cano, vertices_color_cano, vertices_novel, vertices_color_novel = load_views(gt_rgb, rgb_files,
+                                                                                              depth_files, mask_files,
+                                                                                              cam2world_list, H, W, K,
+                                                                                              radius, ppp, outputdir,
+                                                                                              device)
+
         #### colorize point cloud
         # init zeros
         all_v = np.concatenate((vertices_cano, vertices_novel), axis=0)
         all_v_color = np.concatenate((vertices_color_cano, vertices_color_novel), axis=0)
-        
+
         # Save or load
         print("###### Save point cloud ######")
         np.save(outputdir + '/vertices_cano.npy', vertices_cano)
         np.save(outputdir + '/vertices_color_cano.npy', vertices_color_cano)
         np.save(outputdir + '/vertices_novel.npy', vertices_novel)
         np.save(outputdir + '/vertices_color_novel.npy', vertices_color_novel)
-        
+
         # refine stage optimization with SDS loss
         print("###### Optimization with SDS loss ######")
         K = jt.array((K)).float()
-        gt_rgb = imageio.imread(image_path)/255.
-        gt_mask = cv2.resize(gt_rgb[:,:,3:],(H, W))        
-        gt_rgb = cv2.resize(gt_rgb[:,:,:3],(H, W))
-        gt_rgb = jt.array(gt_rgb[None,...]).permute(0,3,1,2)
+        gt_rgb = imageio.imread(image_path) / 255.
+        gt_mask = cv2.resize(gt_rgb[:, :, 3:], (H, W))
+        gt_rgb = cv2.resize(gt_rgb[:, :, :3], (H, W))
+        gt_rgb = jt.array(gt_rgb[None, ...]).permute(0, 3, 1, 2)
         gt_rgb.requires_grad = False
-        
-        kernel = np.ones(((5,5)), np.uint8) ##11
-        gt_mask = cv2.erode(gt_mask,kernel,iterations=1)
+
+        kernel = np.ones(((5, 5)), np.uint8)  ##11
+        gt_mask = cv2.erode(gt_mask, kernel, iterations=1)
         gt_mask = jt.array(gt_mask).unsqueeze(0).unsqueeze(1)
         gt_mask.requires_grad = False
-        
-        train_outputdir = outputdir+'/train/'
-        os.makedirs(train_outputdir,exist_ok=True)
-        
+
+        train_outputdir = outputdir + '/train/'
+        os.makedirs(train_outputdir, exist_ok=True)
+
         radius = float(radius) / float(image_size[0]) * 2.0
-        unet = UNet(num_input_channels=3+16)
+        unet = UNet(num_input_channels=3 + 16)
         unet.train()
         for param in unet.parameters():
             param.requires_grad = True
         cx_model = ContextualLoss(use_vgg=True, vgg_layer='relu5_4')
-        
+
         vertices_cano = jt.array(vertices_cano)
         vertices_cano.requires_grad = False
         vertices_novel = jt.array(vertices_novel)
         vertices_novel.requires_grad = False
         vertices_color_cano = jt.array(vertices_color_cano)
         vertices_color_cano.requires_grad = False
-        
+
         feat_cano = jt.randn((vertices_color_cano.shape[0], 16))
         feat_cano.requires_grad = True
         vertices_color_cano = jt.array(vertices_color_cano)
@@ -893,7 +889,7 @@ class Trainer(object):
         feat_novel.requires_grad = True
         bg_feat = jt.array(jt.ones((1, 19, 1, 1)))
         bg_feat.requires_grad = True
-        
+
         vertices_color_novel_origin = deepcopy(vertices_color_novel)
         vertices_color_novel_origin.requires_grad = False
         vertices_color_cano_origin = deepcopy(vertices_color_cano)
@@ -903,21 +899,21 @@ class Trainer(object):
                                      + unet.parameters(), 0.001, betas=(0.9, 0.99), eps=1e-15)
 
         max_pool = jt.nn.MaxPool2d(kernel_size=5, stride=1, padding=2)
-        
 
         pbar = tqdm.tqdm(range(train_iters))
         for i in pbar:
-            rand_c2w, is_front, is_large = fix_poses(i, device, radius_range=self.opt.radius_range, theta_range=self.opt.theta_range, phi_range=self.opt.phi_range)
+            rand_c2w, is_front, is_large = fix_poses(i, device, radius_range=self.opt.radius_range,
+                                                     theta_range=self.opt.theta_range, phi_range=self.opt.phi_range)
             text_z = self.text_z[0]
             ref_text = self.text[0]
-            
-            cam2world = rand_c2w[0,:,:]
+
+            cam2world = rand_c2w[0, :, :]
             world2cam = jt.linalg.inv(cam2world)
-            all_v = jt.concat((vertices_cano, vertices_novel),dim=0).float()
-            all_xy_cano = jt.concat((vertices_color_cano, feat_cano),dim=-1).float()
-            all_xy_novel = jt.concat((vertices_color_novel, feat_novel),dim=-1).float()
-            all_v_color = jt.concat((all_xy_cano, all_xy_novel),dim=0).float()
-    
+            all_v = jt.concat((vertices_cano, vertices_novel), dim=0).float()
+            all_xy_cano = jt.concat((vertices_color_cano, feat_cano), dim=-1).float()
+            all_xy_novel = jt.concat((vertices_color_novel, feat_novel), dim=-1).float()
+            all_v_color = jt.concat((all_xy_cano, all_xy_novel), dim=0).float()
+
             # Unet
             scale = 1
             pred_list = []
@@ -925,9 +921,10 @@ class Trainer(object):
                 h = H // scale
                 w = W // scale
                 image_size = (h, w)
-                K_ = np.array([[focal*w, 0, 0.5*w], [0, focal*h, 0.5*h], [0, 0, 1]])
+                K_ = np.array([[focal * w, 0, 0.5 * w], [0, focal * h, 0.5 * h], [0, 0, 1]])
                 K_ = jt.array((K_)).float()
-                pred_rgb = render_point(all_v, all_v_color, h, w, K_, world2cam, image_size, radius, ppp, bg_feat=bg_feat,debug=False)
+                pred_rgb = render_point(all_v, all_v_color, h, w, K_, world2cam, image_size, radius, ppp,
+                                        bg_feat=bg_feat, debug=False)
                 scale = scale * 2
                 pred_list.append(pred_rgb)
             pred_rgb = unet(pred_list)
@@ -939,11 +936,11 @@ class Trainer(object):
             pred_mask_dilate = max_pool(pred_mask)
 
             if i % 50 == 0:
-                jt.save_image(pred_rgb[0], os.path.join(train_outputdir,  f'{i}.png'))
-                jt.save_image(pred_mask_dilate[0], os.path.join(train_outputdir,  f'{i}_mask.png'))
-            
+                jt.save_image(pred_rgb[0], os.path.join(train_outputdir, f'{i}.png'))
+                jt.save_image(pred_mask_dilate[0], os.path.join(train_outputdir, f'{i}_mask.png'))
+
             if is_front:
-                clip_loss = 1000 * self.img_loss(pred_rgb*gt_mask, gt_rgb*gt_mask)
+                clip_loss = 1000 * self.img_loss(pred_rgb * gt_mask, gt_rgb * gt_mask)
                 bg_loss = 0
             else:
                 clip_loss, de_imgs = self.guidance.train_step(text_z, pred_rgb, clip_text_model=self.clip_text_model,
@@ -954,14 +951,16 @@ class Trainer(object):
                 clip_loss += 10 * self.img_clip_loss(pred_rgb, gt_rgb)
                 cx_loss = self.img_cx_loss(cx_model, pred_rgb, gt_rgb)
                 clip_loss += cx_loss
-            
+
             # background regularization
             bg_loss = 1e-3 * (1 - pred_rgb * (1 - pred_mask_dilate)).sum()
-            reg_loss = jt.nn.MSELoss()(vertices_color_novel, vertices_color_novel_origin) * 1e3 + jt.nn.MSELoss()(vertices_color_cano, vertices_color_cano_origin) * 1e5
+            reg_loss = jt.nn.MSELoss()(vertices_color_novel, vertices_color_novel_origin) * 1e3 + jt.nn.MSELoss()(
+                vertices_color_cano, vertices_color_cano_origin) * 1e5
             loss = clip_loss + reg_loss + bg_loss
-            
-            pbar.set_description((f"loss: {loss.item():.4f}; reg_loss: {reg_loss.item():.4f}; bg_loss: {bg_loss.item():.4f}"))
-            
+
+            pbar.set_description(
+                (f"loss: {loss.item():.4f}; reg_loss: {reg_loss.item():.4f}; bg_loss: {bg_loss.item():.4f}"))
+
             point_optimizer.zero_grad()
             point_optimizer.backward(loss)
             point_optimizer.step()
@@ -971,27 +970,28 @@ class Trainer(object):
                 jt.save(all_v_color, outputdir + f'/{i}_v_color_unet.pt')
                 jt.save(bg_feat, outputdir + f'/{i}_bg_unet.pt')
                 jt.save({'model_state_dict': unet.state_dict(),
-                        'optimizer_state_dict': point_optimizer.state_dict(),
-                        }, outputdir + f'/{i}_unet.pth')
-        
+                         'optimizer_state_dict': point_optimizer.state_dict(),
+                         }, outputdir + f'/{i}_unet.pth')
+
         jt.save(all_v, outputdir + f'/end_v_unet.pt')
         jt.save(all_v_color, outputdir + f'/end_v_color_unet.pt')
         jt.save(bg_feat, outputdir + f'/end_bg_unet.pt')
         jt.save({'model_state_dict': unet.state_dict(),
-                'optimizer_state_dict': point_optimizer.state_dict(),
-                }, outputdir + f'/end_unet.pth')
-        
+                 'optimizer_state_dict': point_optimizer.state_dict(),
+                 }, outputdir + f'/end_unet.pth')
+
         unet.eval()
         # evaluation
         all_transformed_src_alpha = []
         white_bg = jt.ones((1, 19, 1, 1)).to(device)
-        white_bg.requires_grad=False
+        white_bg.requires_grad = False
         img_outdir = os.path.join(outputdir, "results")
         os.makedirs(img_outdir, exist_ok=True)
-        
+
         # test
         print("###### Finel Refine Rendering ######")
-        pbar = tqdm.tqdm(total=len(test_loader) * test_loader.batch_size, bar_format='{percentage:3.0f}% {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]')
+        pbar = tqdm.tqdm(total=len(test_loader) * test_loader.batch_size,
+                         bar_format='{percentage:3.0f}% {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]')
         for i, data in enumerate(test_loader):
             cam2world = data['poses'][0].detach().cpu().numpy()
             world2cam = np.linalg.inv(cam2world)
@@ -1002,19 +1002,21 @@ class Trainer(object):
                 h = H // scale
                 w = W // scale
                 image_size = (h, w)
-                K_ = np.array([[focal*w, 0, 0.5*w], [0, focal*h, 0.5*h], [0, 0, 1]])
+                K_ = np.array([[focal * w, 0, 0.5 * w], [0, focal * h, 0.5 * h], [0, 0, 1]])
                 K_ = jt.array((K_)).float()
-                pred_rgb = render_point(all_v, all_v_color, h, w, K_, world2cam, image_size, radius, ppp, bg_feat=bg_feat)
+                pred_rgb = render_point(all_v, all_v_color, h, w, K_, world2cam, image_size, radius, ppp,
+                                        bg_feat=bg_feat)
                 scale = scale * 2
                 pred_list.append(pred_rgb)
             pred_rgb = unet(pred_list)
-            transformed_src_alpha = np.array(pred_rgb[0].permute(1,2,0).detach().cpu().numpy() * 255,dtype=np.uint8)
-            jt.save_image(pred_rgb[0], img_outdir+f'/render_unet_{i:04d}.png')
+            transformed_src_alpha = np.array(pred_rgb[0].permute(1, 2, 0).detach().cpu().numpy() * 255, dtype=np.uint8)
+            jt.save_image(pred_rgb[0], img_outdir + f'/render_unet_{i:04d}.png')
             all_transformed_src_alpha.append(transformed_src_alpha)
             pbar.update(test_loader.batch_size)
-        
+
         all_transformed_src_alpha = np.stack(all_transformed_src_alpha, axis=0)
-        imageio.mimwrite(img_outdir+'/render_unet_img_clip.mp4', all_transformed_src_alpha, fps=25, quality=8, macro_block_size=1)
+        imageio.mimwrite(img_outdir + '/render_unet_img_clip.mp4', all_transformed_src_alpha, fps=25, quality=8,
+                         macro_block_size=1)
 
     def train_one_epoch(self, loader):
         self.log(
@@ -1054,7 +1056,7 @@ class Trainer(object):
             self.optimizer.backward(loss)
             self.optimizer.clip_grad_norm(max_norm=10)
             self.optimizer.step()
-            
+
             # if self.scheduler_update_every_step:
             #     self.lr_scheduler.step()
 
@@ -1127,7 +1129,8 @@ class Trainer(object):
                 save_path_depth = os.path.join(self.workspace, 'validation', f'{name}_{self.local_step:04d}_depth.png')
 
                 os.makedirs(os.path.dirname(save_path), exist_ok=True)
-                pred_depth = preds_depth.reshape(1, self.opt.H, self.opt.W, 1).permute(0, 3, 1,2).contiguous()  # [1, 1, H, W]
+                pred_depth = preds_depth.reshape(1, self.opt.H, self.opt.W, 1).permute(0, 3, 1,
+                                                                                       2).contiguous()  # [1, 1, H, W]
 
                 preds = preds.reshape(1, self.opt.H, self.opt.W, 3).permute(0, 3, 1, 2).contiguous()  # [1, 1, H, W]
 
@@ -1205,10 +1208,9 @@ class Trainer(object):
             self.log("[INFO] loaded model.")
             return
         for idx, key in enumerate(checkpoint_dict['model'].keys()):
-            params=checkpoint_dict['model'][key]
+            params = checkpoint_dict['model'][key]
             if idx == 3:
-                checkpoint_dict['model'][key]=params.uint8()
-
+                checkpoint_dict['model'][key] = params.uint8()
 
         self.model.load_state_dict(checkpoint_dict['model'])
         self.log("[INFO] loaded model.")
