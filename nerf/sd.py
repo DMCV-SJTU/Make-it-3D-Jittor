@@ -1,5 +1,4 @@
 import jittor as jt
-import torch
 from jittor import init
 import jittor.transform as T
 from transformers import CLIPTextModel, CLIPTokenizer, logging, CLIPVisionModel, CLIPFeatureExtractor
@@ -57,20 +56,6 @@ class _backward_fun(Function):
         gt_grad = g * grad_scale
         return gt_grad, None
 
-
-# class _backward_fun(Function):
-#     def execute(self, x, gt_grad):
-#         self.x = x
-#         self.gt_grad = gt_grad
-#         print("forward")
-#         return jt.array([0.0])
-#
-#     def grad(self, g):
-#         gt_grad = self.gt_grad
-#         print("grad")
-#         x = self.x
-#         return g, None
-
 backward_fun = _backward_fun.apply
 
 
@@ -113,13 +98,13 @@ class StableDiffusion(nn.Module):
             model_key = 'runwayml/stable-diffusion-v1-5'
         else:
             raise ValueError(f'Stable-diffusion version {self.sd_version} not supported.')
-        self.vae = AutoencoderKL.from_pretrained(model_key, subfolder='vae')# .to(self.device)
+        self.vae = AutoencoderKL.from_pretrained(model_key, subfolder='vae')
         self.tokenizer = CLIPTokenizer.from_pretrained(model_key, subfolder='tokenizer')
-        self.text_encoder = CLIPTextModel.from_pretrained(model_key, subfolder='text_encoder')# .to(self.device)
+        self.text_encoder = CLIPTextModel.from_pretrained(model_key, subfolder='text_encoder')
         self.mean_img = [0.48145466, 0.4578275, 0.40821073]
         self.std_img = [0.26862954, 0.26130258, 0.27577711]
         self.normalize = Normalize(self.mean_img, self.std_img)
-        self.unet = UNet2DConditionModel.from_pretrained(model_key, subfolder='unet')# .to(self.device)
+        self.unet = UNet2DConditionModel.from_pretrained(model_key, subfolder='unet')
         self.scheduler = DDIMScheduler.from_pretrained(model_key, subfolder='scheduler')
         self.num_train_timesteps = self.scheduler.config.num_train_timesteps
         self.num_inference_steps = 50
