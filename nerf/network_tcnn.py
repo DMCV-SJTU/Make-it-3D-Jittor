@@ -11,7 +11,7 @@ from .renderer import NeRFRenderer
 import numpy as np
 from encoding import get_encoder
 
-from JNeRF.python.jnerf.models.position_encoders.hash_encoder import HashEncoder
+from jnerf.models.position_encoders.hash_encoder import HashEncoder
 # from freq_encoder import FrequencyEncoder
 from .utils import safe_normalize
 
@@ -166,24 +166,16 @@ class NeRFNetwork(NeRFRenderer):
         # l: [3], plane light direction, nomalized in [-1, 1]
         # ratio: scalar, ambient ratio, 1 == no shading (albedo only), 0 == only shading (textureless)
         # optimizer = jt.optim.Adam(self.encoder.parameters(), lr=0.5)
-        if shading == 'albedo':  # syh: normal
-            # normal = self.normal(x)
-            if is_test:
-                normal = self.normal(x)
-            else:
-                normal = None
+        if shading == 'albedo': 
+            normal = self.normal(x)
             sigma, albedo = self.common_forward(x)
-
-
             color = albedo
 
 
         else:
             # query normal
-            if is_test:
-                normal = self.normal(x)
-            else:
-                normal = None
+            normal = self.normal(x)
+            
             sigma, albedo = self.common_forward(x)
 
 
@@ -202,10 +194,7 @@ class NeRFNetwork(NeRFRenderer):
 
     def density(self, x, is_grad=True):
         # x: [N, 3], in [-bound, bound]
-        # print(x)
-        # print("WXZ TEST DENSITY!=====")
         sigma, albedo = self.common_forward(x, is_grad)  
-        # print(sigma)
         return {
             'sigma': sigma,
             'albedo': albedo,
@@ -214,12 +203,9 @@ class NeRFNetwork(NeRFRenderer):
     def background(self, d):
 
         h = self.encoder_bg(d)  # [N, C]
-
         h = self.bg_net(h)
-
         # sigmoid activation for rgb
         rgbs = jt.sigmoid(h)
-
         return rgbs
 
     # optimizer utils
