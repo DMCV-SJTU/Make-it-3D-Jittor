@@ -12,6 +12,31 @@ from jittor import nn
 import time
 import os
 from jittor import Function
+import jclip as clip
+
+def nan_to_num(
+        a,
+        nan=0.0,
+        posinf=None,
+        neginf=None,
+):
+    assert isinstance(a, jt.Var)
+
+    if a.dtype is bool or a.dtype is int:
+        return a.clone()
+
+    if nan is None:
+        nan = 0.0
+
+    if posinf is None:
+        posinf = jt.misc.finfo(a.dtype).max
+    if neginf is None:
+        neginf = jt.misc.finfo(a.dtype).min
+    result = jt.where(jt.isnan(a), nan, a)  # type: ignore[call-overload]
+
+    result = jt.where(jt.isneginf(result), neginf, result)  # type: ignore[call-overload]
+    result = jt.where(jt.isposinf(result), posinf, result)  # type: ignore[call-overload]
+    return result
 
 
 def seed_everything(seed):
@@ -20,14 +45,31 @@ def seed_everything(seed):
 
 
 class _backward_fun(Function):
-    def execute(self, x, grad0):
-        self.grad0 = grad0
+
+    def execute(self, x, grad_scale):
+
+        self.grad_scale = grad_scale
+
         return x.mean()
 
     def grad(self, g):
-        grad0 = self.grad0
-        return g * (grad), None
+        grad_scale = self.grad_scale
+        gt_grad = g * grad_scale
+        return gt_grad, None
 
+
+# class _backward_fun(Function):
+#     def execute(self, x, gt_grad):
+#         self.x = x
+#         self.gt_grad = gt_grad
+#         print("forward")
+#         return jt.array([0.0])
+#
+#     def grad(self, g):
+#         gt_grad = self.gt_grad
+#         print("grad")
+#         x = self.x
+#         return g, None
 
 backward_fun = _backward_fun.apply
 
@@ -62,8 +104,6 @@ class StableDiffusion(nn.Module):
         super().__init__()
         # self.device = device
         self.sd_version = sd_version
-        print(f'[INFO] loading stable diffusion...')
-        print(hf_key)
         if (self.sd_version == '2.0'):
             model_key = './sd2'
         elif (hf_key is not None):
@@ -104,37 +144,38 @@ class StableDiffusion(nn.Module):
         text_embeddings = jt.concat([uncond_embeddings, text_embeddings])
         return text_embeddings
 
-
-    def img_clip_loss(self, image_encoder, rgb1, rgb2):
+    def img_clip_loss(self, clip_model, rgb1, rgb2):
         rgb1 = nn.resize(rgb1, (224, 224))
         rgb1 = self.normalize(rgb1)
-        image_z_1 = image_encoder(rgb1)[0]
+        image_z_1 = clip_model.encode_image(rgb1)
         rgb2 = nn.resize(rgb2, (224, 224))
         rgb2 = self.normalize(rgb2)
-        image_z_2 = image_encoder(rgb2)[0]
+        image_z_2 = clip_model.encode_image(rgb2)
         image_z_1 = (image_z_1 / image_z_1.norm(dim=(- 1), keepdim=True))
         image_z_2 = (image_z_2 / image_z_2.norm(dim=(- 1), keepdim=True))
         loss = (- (image_z_1 * image_z_2).sum((- 1)).mean())
         return loss
 
-    def img_text_clip_loss(self, tokenizer, clip_text_model, image_encoder,rgb, prompt):
+    def img_text_clip_loss(self, clip_model, rgb, prompt):
         rgb = nn.resize(rgb, (224, 224))
         rgb = self.normalize(rgb)
-        image_z_1 = image_encoder(rgb)[0]
+        image_z_1 = clip_model.encode_image(rgb)
         image_z_1 = (image_z_1 / image_z_1.norm(dim=(- 1), keepdim=True))
-        text = tokenizer(prompt,padding='max_length', max_length=self.tokenizer.model_max_length, return_tensors='pt' )# .to(self.device)
-        text_z = clip_text_model(text.input_ids)[0]
+        text = clip.tokenize(prompt)  # .to(self.device)
+        text_z = clip_model.encode_text(text)
         text_z = (text_z / text_z.norm(dim=(- 1), keepdim=True))
         loss = (- (image_z_1 * text_z).sum((- 1)).mean())
         return loss
 
-    def train_step(self, text_embeddings, pred_rgb, ref_rgb=None, noise=None, islarge=False, ref_text=None, clip_text_model=None, image_encoder=None, tokenizer=None, guidance_scale=10):
+    def train_step(self, text_embeddings, pred_rgb, ref_rgb=None, noise=None, islarge=False, ref_text=None, clip_model=None, guidance_scale=10, step=-1):
         loss = 0
         imgs = None
         pred_rgb_512 = nn.interpolate(pred_rgb, (512, 512), mode='bilinear', align_corners=False)
         t = jt.randint(self.min_step, (self.max_step + 1), [1], dtype='int32')
+
         w_ = 1.0
         latents = self.encode_imgs(pred_rgb_512)
+
         with jt.no_grad():
             # noise = randn_tensor(latents.shape, seed, dtype=latents.dtype)
             noise = jt.randn_like(latents)
@@ -144,12 +185,15 @@ class StableDiffusion(nn.Module):
             noise_pred = self.unet(latent_model_input, t, encoder_hidden_states=text_embeddings).sample
             (noise_pred_uncond, noise_pred_text) = noise_pred.chunk(2)
             noise_pred = (noise_pred_text + (guidance_scale * (noise_pred_text - noise_pred_uncond)))
-        if ((not islarge) and ((t / self.num_train_timesteps) <= 0.4)):
+
+        if not islarge and (t / self.num_train_timesteps) <= 0.4:
             self.scheduler.set_timesteps(self.num_train_timesteps)
             de_latents = self.scheduler.step(noise_pred, t, latents_noisy)['prev_sample']
             imgs = self.decode_latents(de_latents)
-            loss = ((10 * self.img_clip_loss(image_encoder, imgs, ref_rgb)) + (10 * self.img_text_clip_loss(tokenizer, clip_text_model,image_encoder, imgs, ref_text)))
+            loss = 10 * self.img_clip_loss(clip_model, imgs, ref_rgb) + \
+                   10 * self.img_text_clip_loss(clip_model, imgs, ref_text)
         else:
+
             w = (1 - self.alphas[t])
             grad = ((w * (noise_pred - noise)) * w_)
             imgs = None
