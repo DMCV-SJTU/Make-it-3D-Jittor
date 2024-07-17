@@ -114,7 +114,7 @@ python main.py --workspace ${NAME} --ref_path "${IMGPATH}" --phi_range 135 225 -
 ```
 
 ### Refine stage
-After the coarse stage training, now you can easily use the command ```--refine``` for refine stage training. We optimize the scene under frontal camera views.
+After the coarse stage training, now you can easily use the command --refine for refine stage training. We optimize the scene under frontal camera views.
 ```
 python main.py --workspace ${NAME} --ref_path "${IMGPATH}" --phi_range 135 225 --refine_iters 3000  --refine 
 ```
