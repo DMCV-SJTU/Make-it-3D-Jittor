@@ -712,8 +712,8 @@ class Trainer(object):
 
         self.log(f"[INFO] training takes {(end_t - start_t) / 60:.4f} minutes.")
 
-        if self.use_tensorboardX and self.local_rank == 0:
-            self.writer.close()
+        # if self.use_tensorboardX and self.local_rank == 0:
+        #     self.writer.close()
 
     def evaluate(self, loader, name=None):
         self.use_tensorboardX, use_tensorboardX = False, self.use_tensorboardX
