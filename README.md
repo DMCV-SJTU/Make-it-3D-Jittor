@@ -106,13 +106,18 @@ python main.py --workspace teddy2 --ref_path demo/teddy-2.png --phi_range 135 22
 ```
 - If you want to run Make-It-3D  on your own example, please make sure to get depth map and mask according to the guidance in [preprocess](preprocess/README.md) before performing the training process.
 
-- We also provide a vanila nerf for makeit3d:
+- We also provide a vaniLla nerf for makeit3d:
 ```
 python main.py --workspace ${NAME} --ref_path "${IMGPATH}" --phi_range 135 225  --backbone vanila --iters 10000 --text ${PROMPT}
-``` 
----
+```
+python main.py --workspace ${NAME} --ref_path "${IMGPATH}" --phi_range 135 225 --refine
+```
 
 ### Refine stage
+After the coarse stage training, now you can easily use the command ```--refine``` for refine stage training. We optimize the scene under frontal camera views.
+```
+python main.py --workspace ${NAME} --ref_path "${IMGPATH}" --phi_range 135 225 --refine_iters 3000  --refine 
+```
 We have proposed an example for refine stage. Before the refine stage training, you should download [following examples](https://drive.google.com/drive/folders/1hy88cet39yYM_WjF94b3rHF4XCrpgH6m?usp=sharing) into your workspace. Make sure the downloaded files are placed in the following directory structure: 
 ```
 Make-It-3D/
