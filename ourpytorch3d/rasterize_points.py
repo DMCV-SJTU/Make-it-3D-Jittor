@@ -332,7 +332,6 @@ class _RasterizePoints(jt.Function):
 
     # @staticmethod
     def grad(self, grad_idx, grad_zbuf, grad_dists):
-        assert False
         grad_cloud_to_packed_first_idx = None
         grad_num_points_per_cloud = None
         grad_image_size = None
@@ -352,7 +351,7 @@ class _RasterizePoints(jt.Function):
         W = idx.shape[2]
         K = idx.shape[3]
         grad_points = jt.zeros_like(points)
-        (grad_points, ) = jt.code(inputs=[points, idx, grad_zbuf, grad_dists],
+        grad_points = jt.code(inputs=[points, idx, grad_zbuf, grad_dists],
                 outputs=[grad_points], cuda_header='#include "rasterize_points.h"', cuda_src=f'''
                     @alias(points, in0)
                     @alias(idx, in1)
