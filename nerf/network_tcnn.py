@@ -125,7 +125,7 @@ class NeRFNetwork(NeRFRenderer):
 
         h = self.encoder(h, is_grad)
 
-        h = self.sigma_net(h)
+        h = self.sigma_net(h)  # syh: 此处似乎正常
 
         sigma = trunc_exp(h[..., 0] + self.gaussian(x))
 
@@ -134,14 +134,14 @@ class NeRFNetwork(NeRFRenderer):
         return sigma, albedo
 
     # ref: https://github.com/zhaofuq/Instant-NSR/blob/main/nerf/network_sdf.py#L192
-    def finite_difference_normal(self, x, epsilon=1e-2):
+    def finite_difference_normal(self, x, is_grad=True, epsilon=1e-2):
         # x: [N, 3]
-        dx_pos, _ = self.common_forward((x + jt.array([[epsilon, 0.00, 0.00]])).clamp(-self.bound, self.bound))
-        dx_neg, _ = self.common_forward((x + jt.array([[-epsilon, 0.00, 0.00]])).clamp(-self.bound, self.bound))
-        dy_pos, _ = self.common_forward((x + jt.array([[0.00, epsilon, 0.00]])).clamp(-self.bound, self.bound))
-        dy_neg, _ = self.common_forward((x + jt.array([[0.00, -epsilon, 0.00]])).clamp(-self.bound, self.bound))
-        dz_pos, _ = self.common_forward((x + jt.array([[0.00, 0.00, epsilon]])).clamp(-self.bound, self.bound))
-        dz_neg, _ = self.common_forward((x + jt.array([[0.00, 0.00, -epsilon]])).clamp(-self.bound, self.bound))
+        dx_pos, _ = self.common_forward((x + jt.array([[epsilon, 0.00, 0.00]])).clamp(-self.bound, self.bound), is_grad=is_grad)
+        dx_neg, _ = self.common_forward((x + jt.array([[-epsilon, 0.00, 0.00]])).clamp(-self.bound, self.bound), is_grad=is_grad)
+        dy_pos, _ = self.common_forward((x + jt.array([[0.00, epsilon, 0.00]])).clamp(-self.bound, self.bound), is_grad=is_grad)
+        dy_neg, _ = self.common_forward((x + jt.array([[0.00, -epsilon, 0.00]])).clamp(-self.bound, self.bound), is_grad=is_grad)
+        dz_pos, _ = self.common_forward((x + jt.array([[0.00, 0.00, epsilon]])).clamp(-self.bound, self.bound), is_grad=is_grad)
+        dz_neg, _ = self.common_forward((x + jt.array([[0.00, 0.00, -epsilon]])).clamp(-self.bound, self.bound), is_grad=is_grad)
 
         normal = jt.stack([
             0.5 * (dx_pos - dx_neg) / epsilon,
@@ -151,36 +151,37 @@ class NeRFNetwork(NeRFRenderer):
 
         return -normal
 
-    def normal(self, x):
+    def normal(self, x, is_grad=True):
 
 
-        normal = self.finite_difference_normal(x)
+        normal = self.finite_difference_normal(x, is_grad=is_grad)
         normal = safe_normalize(normal)
         normal = nan_to_num(normal)
 
         return normal
 
-    def execute(self, x, d, l=None, ratio=1, shading='albedo', is_test=False):
+    def execute(self, x, d, l=None, is_grad=True, ratio=1, shading='albedo'):
         # x: [N, 3], in [-bound, bound]
         # d: [N, 3], view direction, nomalized in [-1, 1]
         # l: [3], plane light direction, nomalized in [-1, 1]
         # ratio: scalar, ambient ratio, 1 == no shading (albedo only), 0 == only shading (textureless)
         # optimizer = jt.optim.Adam(self.encoder.parameters(), lr=0.5)
+
         if shading == 'albedo': 
-            normal = self.normal(x)
-            sigma, albedo = self.common_forward(x)
+            normal = self.normal(x,is_grad=is_grad)
+            sigma, albedo = self.common_forward(x, is_grad=is_grad)
             color = albedo
 
 
         else:
             # query normal
-            normal = self.normal(x)
+            normal = self.normal(x, is_grad=is_grad)
             
-            sigma, albedo = self.common_forward(x)
+            sigma, albedo = self.common_forward(x, is_grad=is_grad)
 
 
             if normal.shape[0] < 1e6:
-                lambertian = ratio + (1 - ratio) * (normal @ l).clamp(min_v=0.1)  # [N,]
+                lambertian = ratio + (1 - ratio) * (normal @ l).clamp(min_v=0.1)  # [N,]  
                 if shading == 'textureless':
                     color = lambertian.unsqueeze(-1).repeat(1, 3)
                 elif shading == 'normal':
