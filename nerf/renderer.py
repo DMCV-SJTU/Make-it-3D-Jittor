@@ -548,7 +548,7 @@ class NeRFRenderer(nn.Module):
                 # decide compact_steps
                 n_step = max(min(N // n_alive, 8), 1)
                 xyzs, dirs, deltas = raymarching.march_rays(n_alive, n_step, rays_alive, rays_t, rays_o, rays_d, self.bound, self.density_bitfield, self.cascade, self.grid_size, nears, fars, 128, perturb if step == 0 else False, dt_gamma, max_steps)
-                sigmas, rgbs, normals = self(xyzs, dirs, light_d, ratio=ambient_ratio, shading=shading)
+                sigmas, rgbs, normals = self(xyzs, dirs, light_d, is_grad=False, ratio=ambient_ratio, shading=shading)
                 # normals = (normals + 1) / 2
                 normals = rgbs# jt.zeros_like(rgbs, dtype=jt.float32)
                 raymarching.composite_rays(n_alive, n_step, rays_alive, rays_t, sigmas, rgbs, normals, deltas, weights_sum, depth, image, normal, T_thresh)
