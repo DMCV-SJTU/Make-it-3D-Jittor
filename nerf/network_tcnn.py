@@ -125,7 +125,7 @@ class NeRFNetwork(NeRFRenderer):
 
         h = self.encoder(h, is_grad)
 
-        h = self.sigma_net(h)  # syh: 此处似乎正常
+        h = self.sigma_net(h)
 
         sigma = trunc_exp(h[..., 0] + self.gaussian(x))
 
@@ -180,7 +180,7 @@ class NeRFNetwork(NeRFRenderer):
 
 
             if normal.shape[0] < 1e6:
-                lambertian = ratio + (1 - ratio) * (normal @ l).clamp(min=0.1)  # [N,]
+                lambertian = ratio + (1 - ratio) * (normal @ l).clamp(min_v=0.1)  # [N,]
                 if shading == 'textureless':
                     color = lambertian.unsqueeze(-1).repeat(1, 3)
                 elif shading == 'normal':
