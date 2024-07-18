@@ -1,5 +1,8 @@
+<<<<<<< HEAD
 import sys
 
+=======
+>>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
 import numpy as np
 import cv2
 import os
@@ -17,13 +20,19 @@ from compositing import alpha_composite
 from pointclouds import Pointclouds
 from ourpytorch3d import rasterize_points
 
+<<<<<<< HEAD
 warnings.filterwarnings('ignore')
 
+=======
+
+warnings.filterwarnings('ignore')
+>>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
 
 def load_depth(file_name):
     import cv2
     D = cv2.imread(file_name, cv2.IMREAD_UNCHANGED)
     if not D is None and len(D.shape) > 2:
+<<<<<<< HEAD
         D = D[:, :, 0]
     return D
 
@@ -39,6 +48,22 @@ def save_obj(file_name, v, tri=[]):
 
 
 def multidepth2point(allD, alphamask, cam, c2w, npoint=1000000):
+=======
+        D = D[:,:,0]
+    return    D
+
+def save_obj(file_name, v, tri = []):
+    with open(file_name, 'w') as fid:
+        for i in range(len(v)):
+            fid.write('v %f %f %f\n' % (v[i][0],v[i][1],v[i][2]))
+        for i in range(len(tri)):
+            fid.write(('f'+' %d'*len(tri[i])*'\n') % tuple( \
+                [tri[i][j]+1 for j in range(len(tri[i]))]))
+    return    os.path.exists(file_name)
+
+def multidepth2point(allD, alphamask, cam, c2w, npoint=1000000):
+    
+>>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
     v_list = []
     for i in range(allD.shape[0]):
         D = allD[i]
@@ -49,11 +74,19 @@ def multidepth2point(allD, alphamask, cam, c2w, npoint=1000000):
             np.ones(len(D.reshape(-1)))))
 
         v = np.linalg.inv(cam).dot(cam_xyz).T
+<<<<<<< HEAD
         v = v * np.tile(D.reshape((-1, 1)), (1, 3))
         v = np.matmul(v, c2w[i, :3, :3].T) + c2w[i, :3, 3:].T
         v = v[alphamask[i].reshape(-1) == 1]
         v_list.append(v)
 
+=======
+        v = v * np.tile(D.reshape((-1,1)), (1,3))
+        v = np.matmul(v,c2w[i, :3,:3].T)+c2w[i, :3, 3:].T
+        v = v[alphamask[i].reshape(-1)==1]
+        v_list.append(v)
+    
+>>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
     v_list = np.concatenate(v_list)
     np.random.shuffle(v_list)
     v_list = v_list[:npoint]
@@ -62,12 +95,19 @@ def multidepth2point(allD, alphamask, cam, c2w, npoint=1000000):
     # o3d.io.write_point_cloud('ori.ply', pcd)
     return v_list
 
+<<<<<<< HEAD
 
 def multidepth2point_mask(allD, alphamask, allimg, cam, c2w, cano_v, cano_c2w, cano_D, H, W, radius, ppp, outputdir,
                           device, npoint=1000000):
     image_size = [H, W]
     K = cam
     cano_v = jt.array(cano_v).to(device).float()  # N x 3
+=======
+def multidepth2point_mask(allD, alphamask, allimg, cam, c2w, cano_v, cano_c2w, cano_D, H, W, radius, ppp, outputdir, device, npoint=1000000):
+    image_size = [H, W]
+    K = cam
+    cano_v = jt.array(cano_v).to(device).float() # N x 3
+>>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
     cano_w2c = np.linalg.inv(cano_c2w)
     cano_D = jt.array(cano_D).unsqueeze(0).unsqueeze(0)
     cano_color = jt.ones_like(cano_v)
@@ -78,6 +118,7 @@ def multidepth2point_mask(allD, alphamask, allimg, cam, c2w, cano_v, cano_c2w, c
     pbar = tqdm.tqdm(range(c2w.shape[0]))
     for i in pbar:
         if i > -1:
+<<<<<<< HEAD
             gt_rgb = jt.array(allimg[i:i + 1, ...]).permute(0, 3, 1, 2)
             w2c = np.linalg.inv(c2w[i])
             w2c_tensor = jt.array(w2c).to(device)
@@ -89,6 +130,18 @@ def multidepth2point_mask(allD, alphamask, allimg, cam, c2w, cano_v, cano_c2w, c
             kernel = np.ones(((15, 15)), np.uint8)  ##11
             mask = cv2.erode(mask, kernel, iterations=1)
             mask = np.logical_or(np.logical_or((mask[:, :, 0] > 0.9), (mask[:, :, 1] > 0.9)), (mask[:, :, 2] > 0.9))
+=======
+            gt_rgb = jt.array(allimg[i:i+1,...]).permute(0,3,1,2)
+            w2c = np.linalg.inv(c2w[i])
+            w2c_tensor = jt.array(w2c).to(device)
+            cano_mask = render_point(cano_v, cano_color, H, W, K_tensor, w2c_tensor, image_size, radius, ppp)
+            imageio.imwrite(outputdir+'/render_%s_mask.png'%(i),np.array(cano_mask[0].permute(1,2,0).cpu().numpy() * 255,dtype=np.uint8))
+            mask = imageio.imread(outputdir+'/render_%s_mask.png'%(i)) / 255
+            # os.remove(outputdir+'/render_%s_mask.png'%(i))
+            kernel = np.ones(((15, 15)), np.uint8) ##11
+            mask = cv2.erode(mask,kernel,iterations=1)
+            mask = np.logical_or(np.logical_or((mask[:,:, 0]>0.9),(mask[:,:, 1]>0.9)), (mask[:,:, 2]>0.9))
+>>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
             mask = np.logical_and(alphamask[i], ~mask)
 
             D = allD[i]
@@ -98,6 +151,7 @@ def multidepth2point_mask(allD, alphamask, allimg, cam, c2w, cano_v, cano_c2w, c
                 y.reshape(-1), \
                 np.ones(len(D.reshape(-1)))))
             v = np.linalg.inv(cam).dot(cam_xyz).T
+<<<<<<< HEAD
             v = v * np.tile(D.reshape((-1, 1)), (1, 3))
             # imageio.imwrite(outputdir+'/render_%s_new_mask.png'%(i),np.array(mask * 255,dtype=np.uint8))
 
@@ -110,16 +164,39 @@ def multidepth2point_mask(allD, alphamask, allimg, cam, c2w, cano_v, cano_c2w, c
             xy_d = jt.nn.grid_sample(cano_D, xy1)
             xy_d = xy_d.squeeze(0).squeeze(0).permute(1, 0).cpu().numpy()
             xy_mask = np.logical_and((xyz - xy_d) <= (1 / H), (xyz - xy_d) >= -0.2)
+=======
+            v = v * np.tile(D.reshape((-1,1)), (1,3))
+            # imageio.imwrite(outputdir+'/render_%s_new_mask.png'%(i),np.array(mask * 255,dtype=np.uint8))
+        
+            v = v[mask.reshape(-1)==1]
+            
+            v = np.matmul(v,c2w[i, :3,:3].T)+c2w[i, :3, 3:].T
+            xy1, xyz = project(v, K, cano_w2c[:3, :4])
+            xy1 = np.round(xy1).astype(np.int32)
+            xy1 = jt.array(xy1[None,None,...])/H*2.-1.
+            xy_d = jt.nn.grid_sample(cano_D, xy1)
+            xy_d = xy_d.squeeze(0).squeeze(0).permute(1,0).cpu().numpy()
+            xy_mask = np.logical_and((xyz-xy_d) <= (1 / H), (xyz-xy_d) >= -0.2)
+>>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
             # xy_mask = ((xyz-xy_d) >= -0.2)
             v = v[~xy_mask[:, 0], :]
 
             mask_cano = z_buffer(v, w2c, H, W, K)
+<<<<<<< HEAD
             v = v[mask_cano, :]  # 有color的点
             xy, _ = project(v, K, w2c[:3, :4])
             xy = jt.array(xy[None, None, ...]) / H * 2. - 1.
             v_color = jt.nn.grid_sample(gt_rgb, xy)
             v_color = v_color.squeeze().permute(1, 0).cpu().numpy()
 
+=======
+            v = v[mask_cano,:]
+            xy,_ = project(v ,K, w2c[:3,:4])
+            xy = jt.array(xy[None,None,...])/H*2.-1.
+            v_color = jt.nn.grid_sample(gt_rgb,xy)
+            v_color = v_color.squeeze().permute(1,0).cpu().numpy()
+            
+>>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
             v_list.append(v)
             v_color_list.append(v_color)
 
@@ -133,7 +210,10 @@ def multidepth2point_mask(allD, alphamask, allimg, cam, c2w, cano_v, cano_c2w, c
         arr = arr[:npoint]
         return v_list[arr], v_color_list[arr]
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
 def depth2point(D, alphamask, c2w, gt_rgb, H, W, cam):
     K = cam
     x, y = np.meshgrid(np.arange(D.shape[1]), np.arange(D.shape[0]))
@@ -141,15 +221,23 @@ def depth2point(D, alphamask, c2w, gt_rgb, H, W, cam):
         x.reshape(-1), \
         y.reshape(-1), \
         np.ones(len(D.reshape(-1)))))
+<<<<<<< HEAD
     v = np.linalg.inv(cam).dot(cam_xyz).T
     v = v * np.tile(D.reshape((-1, 1)), (1, 3))
     v = v[alphamask.reshape(-1) == 1]
     v = np.matmul(v, c2w[:3, :3].T) + c2w[:3, 3:].T
+=======
+    v = np.linalg.inv(cam).dot(cam_xyz).T 
+    v = v * np.tile(D.reshape((-1,1)), (1,3))
+    v = v[alphamask.reshape(-1)==1]
+    v = np.matmul(v,c2w[:3,:3].T)+c2w[:3, 3:].T
+>>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
     # save_mesh = trimesh.points.PointCloud(vertices = v)
     # save_mesh.export(outputdir + '/teddy_depth_fix.obj')
 
     w2c = np.linalg.inv(c2w)
     mask_cano = z_buffer(v, w2c, H, W, K)
+<<<<<<< HEAD
     v = v[mask_cano, :]  # 有color的点
 
     xy, _ = project(v, K, w2c[:3, :4])
@@ -160,16 +248,32 @@ def depth2point(D, alphamask, c2w, gt_rgb, H, W, cam):
     return v, v_color
 
 
+=======
+    v = v[mask_cano,:]
+
+    xy,_ = project(v ,K, w2c[:3,:4])
+    gt_rgb = jt.array(gt_rgb[None,...]).permute(0,3,1,2)
+    xy = jt.array(xy[None,None,...])/H*2.-1.
+    v_color = nn.grid_sample(gt_rgb,xy)
+    v_color = v_color.squeeze().permute(1,0).cpu().numpy()
+    return v, v_color
+    
+>>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
 def project(xyz, K, RT):
     xyz = np.dot(xyz, RT[:, :3].T) + RT[:, 3:].T
     xyz = np.dot(xyz, K.T)
     xy = xyz[:, :2] / xyz[:, 2:]
+<<<<<<< HEAD
     return xy, xyz[:, 2:]
 
+=======
+    return xy,xyz[:,2:]
+>>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
 
 def safe_normalize(x, eps=1e-20):
     return x / np.sqrt(np.clip(np.sum(x * x, axis=-1), eps, 100000))
 
+<<<<<<< HEAD
 
 def safe_normalize_tensor(x, eps=1e-20):
     return x / jt.sqrt(jt.clamp(jt.sum(x * x, -1, keepdim=True), min_v=eps))
@@ -223,6 +327,57 @@ def z_buffer(vertices, world2cam_pose_cano, H, W, K):
 
 
 def rand_poses(index, device, radius_range=[1, 1.5], theta_range=[0, 100], phi_range=[0, 360]):
+=======
+def safe_normalize_tensor(x, eps=1e-20):
+    return x / jt.sqrt(jt.clamp(jt.sum(x * x, -1, keepdim=True), min_v=eps))
+
+# borrow from https://github.com/jiaxinxie97/HFGI3D/blob/main/multi_views/generate_multi_views.py
+def z_buffer(vertices, world2cam_pose_cano, H, W, K):
+    # world to camera
+    xy1,xyz = project(vertices, K, world2cam_pose_cano[:3,:4])
+    xy1 = np.round(xy1).astype(np.int32)
+    xy1_mask = np.logical_and(np.logical_and((xy1[:,0]>=0),(xy1[:,0]<=W-1)),np.logical_and((xy1[:,1]>=0),(xy1[:,1]<=H-1)))
+
+    # zbuffer, find visible point
+    img1 = np.zeros((H,W))
+    zbuff = np.zeros((H,W,2))
+    maskout =[]
+    colorout = []
+    for i in np.arange(xy1.shape[0]): 
+        if xy1_mask[i]:
+            if img1[xy1[i, 1], xy1[i, 0]]==0:
+                img1[xy1[i, 1], xy1[i, 0]] = 1
+                zbuff[xy1[i,1], xy1[i,0],0] = xyz[i,0]
+                zbuff[xy1[i,1], xy1[i,0],1] = i
+            elif xyz[i,0]<zbuff[xy1[i,1],xy1[i,0,],0]:
+                zbuff[xy1[i,1],xy1[i,0],0] = xyz[i,0]
+                zbuff[xy1[i,1], xy1[i,0],1] = i
+            else:
+                continue 
+      
+    for i in np.arange(xy1.shape[0]): 
+        if xy1_mask[i]:
+            if (xyz[i,0]-zbuff[xy1[i,1],xy1[i,0,],0])> (1./H):
+                #  continue
+                maskout.append(vertices[int(i):int(i)+1,:]) 
+                colorout.append(np.array([0,0,0],dtype=np.float32).reshape((1,3)))
+            else:
+                maskout.append(vertices[int(i):int(i)+1,:]) 
+                colorout.append(np.array([1,1,1],dtype=np.float32).reshape((1,3)))
+        else:
+            maskout.append(vertices[int(i):int(i)+1,:]) 
+            colorout.append(np.array([0,0,0],dtype=np.float32).reshape((1,3)))
+    maskout = np.concatenate(maskout,axis=0)
+    colorout = np.concatenate(colorout,axis=0)
+    vertices = maskout
+    colors = colorout
+    mask =((colors[:,0]+colors[:,1]+colors[:,2])!=0)
+    
+    return mask
+
+def rand_poses(index, device, radius_range=[1, 1.5], theta_range=[0, 100], phi_range=[0, 360]):
+
+>>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
     theta_range = np.deg2rad(theta_range)
     phi_range = np.deg2rad(phi_range)
     size = 1
@@ -241,7 +396,11 @@ def rand_poses(index, device, radius_range=[1, 1.5], theta_range=[0, 100], phi_r
         radius * jt.sin(thetas) * jt.sin(phis),
         radius * jt.cos(thetas),
         radius * jt.sin(thetas) * jt.cos(phis),
+<<<<<<< HEAD
     ], dim=-1)  # [B, 3]
+=======
+    ], dim=-1) # [B, 3]
+>>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
 
     targets = 0
     # lookat
@@ -252,6 +411,7 @@ def rand_poses(index, device, radius_range=[1, 1.5], theta_range=[0, 100], phi_r
     poses = jt.init.eye(4, dtype=jt.float).unsqueeze(0).repeat(size, 1, 1)
     poses[:, :3, :3] = jt.stack([right_vector, up_vector, forward_vector], dim=-1)
     poses[:, :3, 3] = centers
+<<<<<<< HEAD
 
     return poses, is_front
 
@@ -261,6 +421,17 @@ def fix_poses(index, device, radius_range=[1, 1.5], theta_range=[0, 100], phi_ra
     phi_range = np.deg2rad(phi_range)
     size = 1
 
+=======
+    
+    return poses, is_front
+
+def fix_poses(index, device, radius_range=[1, 1.5], theta_range=[0, 100], phi_range=[0, 360]):
+
+    theta_range = np.deg2rad(theta_range)
+    phi_range = np.deg2rad(phi_range)
+    size = 1
+    
+>>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
     if index % 4 == 0:
         radius = jt.ones(size)
         thetas = jt.ones(size) * (theta_range[1] - theta_range[0]) / 2 + theta_range[0]
@@ -285,12 +456,20 @@ def fix_poses(index, device, radius_range=[1, 1.5], theta_range=[0, 100], phi_ra
                 phis = jt.rand(size) * (np.deg2rad(120.0) - np.deg2rad(45.0)) + np.deg2rad(45.0)
             else:
                 phis = jt.rand(size) * (np.deg2rad(240.0) - np.deg2rad(120.0)) + np.deg2rad(120.0)
+<<<<<<< HEAD
 
+=======
+            
+>>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
         is_front = False
 
         rand_theta = jt.rand(size)
         thetas = rand_theta * (theta_range[1] - theta_range[0]) + theta_range[0]
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
     if (phis >= np.deg2rad(0) and phis <= np.deg2rad(45)) or (phis >= np.deg2rad(315) and phis <= np.deg2rad(360)):
         is_large = True
     else:
@@ -300,14 +479,22 @@ def fix_poses(index, device, radius_range=[1, 1.5], theta_range=[0, 100], phi_ra
         radius * jt.sin(thetas) * jt.sin(phis),
         radius * jt.cos(thetas),
         radius * jt.sin(thetas) * jt.cos(phis),
+<<<<<<< HEAD
     ], dim=-1)  # [B, 3]
+=======
+    ], dim=-1) # [B, 3]
+>>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
 
     targets = 0
     # lookat
     forward_vector = safe_normalize_tensor(targets - centers)
     up_vector = jt.array([0, -1, 0]).unsqueeze(0).repeat(size, 1)
     right_vector = safe_normalize_tensor(jt.cross(forward_vector, up_vector, dim=-1))
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
     up_noise = 0
     up_vector = safe_normalize_tensor(jt.cross(right_vector, forward_vector, dim=-1) + up_noise)
 
@@ -317,11 +504,19 @@ def fix_poses(index, device, radius_range=[1, 1.5], theta_range=[0, 100], phi_ra
 
     return poses, is_front, is_large
 
+<<<<<<< HEAD
 
 def render_point(points_xyz_org, points_color, H, W, K, world2cam, image_size, radius, ppp, bg_feat=None,
                  acc='alphacomposite', debug=False):
     proj_xyz = jt.matmul(points_xyz_org, jt.transpose(world2cam[:3, :3])) + world2cam[:3, 3]
 
+=======
+def render_point(points_xyz_org, points_color, H, W, K, world2cam, image_size, radius, ppp, bg_feat=None, acc='alphacomposite',debug=False):
+    proj_xyz = jt.matmul(points_xyz_org, jt.transpose(world2cam[:3, :3])) + world2cam[:3, 3]
+
+
+
+>>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
     # Perspective projection
     proj_xyz = jt.matmul(proj_xyz, jt.transpose(K))
     proj_xyz[:, 0:2] = proj_xyz[:, 0:2] / proj_xyz[:, 2:]
@@ -338,7 +533,11 @@ def render_point(points_xyz_org, points_color, H, W, K, world2cam, image_size, r
         ppp
     )
 
+<<<<<<< HEAD
     dist = 0.1 * dist / pow(radius, 2)
+=======
+    dist = 0.1*dist/ pow(radius, 2)
+>>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
     alphas = (
         (1 - jt.clamp(dist, 1e-3, 1).pow(0.5))
         .pow(1)
@@ -348,6 +547,7 @@ def render_point(points_xyz_org, points_color, H, W, K, world2cam, image_size, r
     transformed_src_alphas = alpha_composite.alpha_composite(
         points_idx.permute(0, 3, 1, 2).long(),
         alphas,
+<<<<<<< HEAD
         pts3D.features_packed().permute(1, 0),
     )
 
@@ -358,26 +558,53 @@ def load_views(gt_rgb, rgb_files, depth_files, mask_files, cam2world_list, H, W,
     # Load single-view depth
     print("###### Loading single-view depth image ######")
     ind = (len(cam2world_list) - 1) // 2
+=======
+        pts3D.features_packed().permute(1,0),
+    )
+        
+    return transformed_src_alphas
+
+def load_views(gt_rgb, rgb_files, depth_files, mask_files, cam2world_list, H, W, K, radius, ppp, outputdir, device):
+    
+    # Load single-view depth
+    print("###### Loading single-view depth image ######")
+    ind = (len(cam2world_list)-1) // 2
+>>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
     depth_file_cano = depth_files[ind]
     mask_file_cano = mask_files[ind]
     cam2world_cano = cam2world_list[ind]
     depth_cano = load_depth(depth_file_cano) / 1000.0
 
     mask_cano = load_depth(mask_file_cano) / 255.0
+<<<<<<< HEAD
     depth_cano = cv2.resize(depth_cano, (W, H))
     mask_cano = cv2.resize(mask_cano, (W, H))
     kernel = np.ones(((11, 11)), np.uint8)  ##11
     mask_cano = cv2.erode(mask_cano, kernel, iterations=2)
     mask_cano = (mask_cano == 1)
+=======
+    depth_cano = cv2.resize(depth_cano,(W,H))
+    mask_cano = cv2.resize(mask_cano,(W,H))
+    kernel = np.ones(((11, 11)), np.uint8) ##11
+    mask_cano = cv2.erode(mask_cano,kernel,iterations=2)
+    mask_cano = (mask_cano==1)
+>>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
 
     depth_blur = depth_cano * mask_cano * 255.0
     depth_blur = np.uint8(depth_blur)
     sobel = cv2.Canny(depth_blur, 30, 30)
     kernel = np.ones(((11, 11)), np.uint8)
+<<<<<<< HEAD
     edge_mask_cano = cv2.dilate(sobel, kernel, iterations=1)
     # cv2.imwrite(os.path.join(outputdir, f'render_cano_sobel.png'), edge_mask_cano)
 
     edge_mask_cano = (edge_mask_cano == 255)
+=======
+    edge_mask_cano = cv2.dilate(sobel, kernel,iterations=1)
+    # cv2.imwrite(os.path.join(outputdir, f'render_cano_sobel.png'), edge_mask_cano)
+
+    edge_mask_cano = (edge_mask_cano==255)
+>>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
     # mask_cano = np.logical_and(mask_cano, ~edge_mask_cano)
     #### depth to point cloud
     print("###### Depth to point cloud and mesh ######")
@@ -386,8 +613,13 @@ def load_views(gt_rgb, rgb_files, depth_files, mask_files, cam2world_list, H, W,
 
     # Load multi-view depth
     print("###### Loading multi-view depth image ######")
+<<<<<<< HEAD
     all_depth = []
     all_mask = []
+=======
+    all_depth=[]
+    all_mask=[]
+>>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
     all_cam = []
     all_rgb = []
     for i in range(len(depth_files)):
@@ -396,6 +628,7 @@ def load_views(gt_rgb, rgb_files, depth_files, mask_files, cam2world_list, H, W,
         else:
             depth = load_depth(depth_files[i]) / 1000.0
             mask = load_depth(mask_files[i]) / 255.0
+<<<<<<< HEAD
             rgb = imageio.imread(rgb_files[i]) / 255.
 
             depth = cv2.resize(depth, (W, H))
@@ -404,30 +637,57 @@ def load_views(gt_rgb, rgb_files, depth_files, mask_files, cam2world_list, H, W,
             kernel = np.ones(((11, 11)), np.uint8)  ##11
             mask = cv2.erode(mask, kernel, iterations=1)
             mask = (mask == 1)
+=======
+            rgb = imageio.imread(rgb_files[i])/255.
+            
+            depth = cv2.resize(depth,(W,H))
+            mask = cv2.resize(mask,(W,H))
+
+            kernel = np.ones(((11, 11)), np.uint8) ##11
+            mask = cv2.erode(mask,kernel,iterations=1)
+            mask = (mask==1)
+>>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
             depth_blur = depth * mask * 255.0
             depth_blur = np.uint8(depth_blur)
             sobel = cv2.Canny(depth_blur, 10, 10)
             kernel = np.ones(((11, 11)), np.uint8)
+<<<<<<< HEAD
             edge_mask = cv2.dilate(sobel, kernel, iterations=1)
             # cv2.imwrite(os.path.join(outputdir, f'render_{i}_sobel.png'),edge_mask)
 
             edge_mask = (edge_mask == 255)
             rgb = cv2.resize(rgb[:, :, :3], (W, H))
+=======
+            edge_mask = cv2.dilate(sobel, kernel,iterations=1)
+            # cv2.imwrite(os.path.join(outputdir, f'render_{i}_sobel.png'),edge_mask)
+
+            edge_mask = (edge_mask==255)
+            rgb = cv2.resize(rgb[:,:,:3],(W,H))
+>>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
             mask = np.logical_and(mask, ~edge_mask)
             c2w = cam2world_list[i]
             all_depth.append(depth)
             all_mask.append(mask)
             all_cam.append(c2w)
             all_rgb.append(rgb)
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
     all_depth = np.stack(all_depth, axis=0)
     all_mask = np.stack(all_mask, axis=0)
     all_cam = np.stack(all_cam, axis=0)
     all_rgb = np.stack(all_rgb, axis=0)
     #### depth to point cloud
     print("###### Multi depth to point cloud and mesh ######")
+<<<<<<< HEAD
     vertices_novel, vertices_color_novel = multidepth2point_mask(all_depth, all_mask, all_rgb, K, all_cam,
                                                                  vertices_cano, cam2world_cano, depth_cano * mask_cano,
                                                                  H, W, radius, ppp, outputdir, device)
 
+=======
+    vertices_novel, vertices_color_novel = multidepth2point_mask(all_depth, all_mask, all_rgb, K, all_cam, vertices_cano, cam2world_cano, depth_cano*mask_cano, H, W, radius, ppp, outputdir, device)
+    
+>>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
     return vertices_cano, vertices_color_cano, vertices_novel, vertices_color_novel

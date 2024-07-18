@@ -1,5 +1,11 @@
 import argparse
+<<<<<<< HEAD
 
+=======
+import sys
+
+from skimage.transform import resize
+>>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
 import jittor as jt
 import jittor.transform as T
 import torch
@@ -11,13 +17,19 @@ from jittor import lr_scheduler
 from nerf.provider import NeRFDataset
 from nerf.utils import *
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
 from scipy.ndimage import median_filter
 from PIL import Image
 
 jt.flags.use_cuda = 1
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
@@ -37,7 +49,10 @@ if __name__ == '__main__':
     parser.add_argument('--suppress_face', action='store_true', help="also use negative dir text prompt.")
     parser.add_argument('--ref_path', default=None, type=str, help="use image as referance, only support alpha image")
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
     ### training options
     parser.add_argument('--iters', type=int, default=10000, help="training iters")
     parser.add_argument('--refine_iters', type=int, default=3000, help="refine iters")
@@ -46,6 +61,7 @@ if __name__ == '__main__':
     parser.add_argument('--ckpt', type=str, default='latest')
     parser.add_argument('--cuda_ray', action='store_true', help="use CUDA raymarching instead of pytorch")
     parser.add_argument('--no_cuda_ray', action='store_true', help="use CUDA raymarching instead of pytorch")
+<<<<<<< HEAD
     parser.add_argument('--max_steps', type=int, default=512, help="max num steps sampled per ray (only valid when using --cuda_ray)")
     parser.add_argument('--num_steps', type=int, default=64, help="num steps sampled per ray (only valid when not using --cuda_ray)")
     parser.add_argument('--upsample_steps', type=int, default=32, help="num steps up-sampled per ray (only valid when not using --cuda_ray)")
@@ -66,21 +82,69 @@ if __name__ == '__main__':
     parser.add_argument('--backbone', type=str, default='tcnn', choices=['grid', 'tcnn', 'sdf', 'vanilla', 'normal'], help="nerf backbone")
     parser.add_argument('--optim', type=str, default='adan', choices=['adan', 'adam', 'adamw'], help="optimizer")
     parser.add_argument('--sd_version', type=str, default='2.0', choices=['1.5', '2.0'], help="stable diffusion version")
+=======
+    parser.add_argument('--max_steps', type=int, default=512,
+                        help="max num steps sampled per ray (only valid when using --cuda_ray)")
+    parser.add_argument('--num_steps', type=int, default=64,
+                        help="num steps sampled per ray (only valid when not using --cuda_ray)")
+    parser.add_argument('--upsample_steps', type=int, default=32,
+                        help="num steps up-sampled per ray (only valid when not using --cuda_ray)")
+    parser.add_argument('--update_extra_interval', type=int, default=16,
+                        help="iter interval to update extra status (only valid when using --cuda_ray)")
+    parser.add_argument('--max_ray_batch', type=int, default=4096,
+                        help="batch size of rays at inference to avoid OOM (only valid when not using --cuda_ray)")
+    parser.add_argument('--albedo_iters', type=int, default=1000, help="training iters that only use albedo shading")
+    parser.add_argument('--uniform_sphere_rate', type=float, default=0.5,
+                        help="likelihood of sampling camera location uniformly on the sphere surface area")
+    parser.add_argument('--diff_iters', type=int, default=400, help="training iters that only use albedo shading")
+    parser.add_argument('--step_range', type=float, nargs='*', default=[0.2, 0.6])
+
+    # model options
+    parser.add_argument('--bg_radius', type=float, default=-1,
+                        help="if positive, use a background model at sphere(bg_radius)")
+    parser.add_argument('--density_thresh', type=float, default=10, help="threshold for density grid to be occupied")
+    parser.add_argument('--blob_density', type=float, default=5,
+                        help="max (center) density for the gaussian density blob")
+    parser.add_argument('--blob_radius', type=float, default=0.1,
+                        help="control the radius for the gaussian density blob")
+    # network backbone
+    parser.add_argument('--fp16', action='store_true', help="use amp mixed precision training")
+    parser.add_argument('--backbone', type=str, default='tcnn', choices=['grid', 'tcnn', 'sdf', 'vanilla', 'normal'],
+                        help="nerf backbone")
+    parser.add_argument('--optim', type=str, default='adan', choices=['adan', 'adam', 'adamw'], help="optimizer")
+    parser.add_argument('--sd_version', type=str, default='2.0', choices=['1.5', '2.0'],
+                        help="stable diffusion version")
+>>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
     parser.add_argument('--hf_key', type=str, default=None, help="hugging face Stable diffusion model key")
     # rendering resolution in training, decrease this if CUDA OOM.
     parser.add_argument('--w', type=int, default=96, help="render width for NeRF in training")
     parser.add_argument('--h', type=int, default=96, help="render height for NeRF in training")
+<<<<<<< HEAD
     
     ### dataset options
     parser.add_argument('--bound', type=float, default=1, help="assume the scene is bounded in box(-bound, bound)")
     parser.add_argument('--dt_gamma', type=float, default=0, help="dt_gamma (>=0) for adaptive ray marching. set to 0 to disable, >0 to accelerate rendering (but usually with worse quality)")
     parser.add_argument('--min_near', type=float, default=0.1, help="minimum near distance for camera")
     parser.add_argument('--radius_range', type=float, nargs='*', default=[1.0, 1.5], help="training camera radius range")
+=======
+
+    ### dataset options
+    parser.add_argument('--bound', type=float, default=1, help="assume the scene is bounded in box(-bound, bound)")
+    parser.add_argument('--dt_gamma', type=float, default=0,
+                        help="dt_gamma (>=0) for adaptive ray marching. set to 0 to disable, >0 to accelerate rendering (but usually with worse quality)")
+    parser.add_argument('--min_near', type=float, default=0.1, help="minimum near distance for camera")
+    parser.add_argument('--radius_range', type=float, nargs='*', default=[1.0, 1.5],
+                        help="training camera radius range")
+>>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
     parser.add_argument('--fov', type=float, default=20, help="training camera fovy range")
     parser.add_argument('--fovy_range', type=float, nargs='*', default=[15, 25], help="training camera fovy range")
     parser.add_argument('--theta_range', type=float, nargs='*', default=[70, 110], help="training camera phi range")
     parser.add_argument('--phi_range', type=float, nargs='*', default=[0, 360], help="training camera phi range")
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
     parser.add_argument('--lambda_entropy', type=float, default=1, help="loss scale for alpha entropy")
     parser.add_argument('--lambda_opacity', type=float, default=1e-3, help="loss scale for alpha value")
     parser.add_argument('--lambda_orient', type=float, default=1e-2, help="loss scale for orientation")
@@ -88,6 +152,7 @@ if __name__ == '__main__':
     parser.add_argument('--lambda_img', type=float, default=1e3, help="loss scale for ref loss")
     parser.add_argument('--lambda_depth', type=float, default=1, help="loss scale for depth loss")
     parser.add_argument('--lambda_clip', type=float, default=1, help="loss scale for clip loss")
+<<<<<<< HEAD
     
     parser.add_argument('--W', type=int, default=800, help="GUI width")
     parser.add_argument('--H', type=int, default=800, help="GUI height")
@@ -97,6 +162,18 @@ if __name__ == '__main__':
     parser.add_argument('--max_spp', type=int, default=1, help="GUI rendering max sample per pixel")
     parser.add_argument('--max_depth', type=float, default=10.0, help="farthest depth")
     
+=======
+
+    parser.add_argument('--W', type=int, default=800, help="GUI width")
+    parser.add_argument('--H', type=int, default=800, help="GUI height")
+    parser.add_argument('--radius', type=float, default=3, help="default GUI camera radius from center")
+    parser.add_argument('--light_theta', type=float, default=60,
+                        help="default GUI light direction in [0, 180], corresponding to elevation [90, -90]")
+    parser.add_argument('--light_phi', type=float, default=0, help="default GUI light direction in [0, 360), azimuth")
+    parser.add_argument('--max_spp', type=int, default=1, help="GUI rendering max sample per pixel")
+    parser.add_argument('--max_depth', type=float, default=10.0, help="farthest depth")
+
+>>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
     opt = parser.parse_args()
     opt.cuda_ray = True
     if opt.no_cuda_ray:
@@ -120,7 +197,10 @@ if __name__ == '__main__':
     device = 'cpu'
     if jt.flags.use_cuda == 1:
         device = 'cuda'
+<<<<<<< HEAD
     
+=======
+>>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
 
     if opt.optim == 'adan':
         from optimizer import Adan
@@ -181,9 +261,15 @@ if __name__ == '__main__':
     mask = (mask == 0)
     mask = (jt.array(mask)).unsqueeze(0).unsqueeze(0).to(device)
     depth_mask = mask
+<<<<<<< HEAD
     
     # depth load
     disparity = imageio.imread(os.path.join(opt.workspace, 'preprocess','depth.png')) / 65535.
+=======
+
+
+    disparity = imageio.imread(os.path.join(opt.workspace, 'preprocess', 'depth.png')) / 65535.
+>>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
     disparity = median_filter(disparity, size=5)
     depth = 1. / np.maximum(disparity, 1e-2)
 
