@@ -62,7 +62,6 @@ class _CompositeAlphaPoints(Function):
 
         return pt_cld
 
-    # 目标变量是
     def grad(self, grad_output):
         '''
         grad_feature:[]
