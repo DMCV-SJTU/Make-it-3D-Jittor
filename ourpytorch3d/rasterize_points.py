@@ -332,10 +332,7 @@ class _RasterizePoints(jt.Function):
 
     # @staticmethod
     def grad(self, grad_idx, grad_zbuf, grad_dists):
-<<<<<<< HEAD
         assert False
-=======
->>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
         grad_cloud_to_packed_first_idx = None
         grad_num_points_per_cloud = None
         grad_image_size = None
@@ -392,8 +389,4 @@ class _RasterizePoints(jt.Function):
             grad_bin_size,
             grad_max_points_per_bin,
         )
-<<<<<<< HEAD
         return grads
-=======
-        return grads
->>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
