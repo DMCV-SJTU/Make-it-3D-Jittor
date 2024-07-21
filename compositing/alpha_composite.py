@@ -77,7 +77,7 @@ class _CompositeAlphaPoints(Function):
 
         (grad_features, grad_alphas) = jt.code(
             inputs=[grad_output, features, alphas, points_idx],
-            outputs=[grad_features, grad_alphas],  # syh: 首先,这个缺少")"应该不是头文件里面的问题,因为我们去掉后还有这个报错
+            outputs=[grad_features, grad_alphas], 
             cuda_header='#include "alpha_composite.h"',
             cuda_src=f''' 
             @alias(grad_outputs, in0)
