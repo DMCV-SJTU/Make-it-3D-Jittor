@@ -5,16 +5,12 @@ from .global_header import proj_path
 
 jt.flags.use_cuda = 1
 
-<<<<<<< HEAD
+
 # from pytorch3d.renderer import compositing
 
-class _CompositeAlphaPoints(Function):        
+class _CompositeAlphaPoints(Function):
     # @staticmethod
-    
-    
-=======
-class _CompositeAlphaPoints(Function):        
->>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
+
     def execute(self, points_idx, alphas, features):
         """_summary_
         features: Packed Tensor of shape (C, P) giving the features of each point.
@@ -30,15 +26,15 @@ class _CompositeAlphaPoints(Function):
         features = features.float()
         alphas = alphas.float()
         points_idx = points_idx.int64()
-        
+
         N = points_idx.shape[0]  # num rays
 
-        pt_cld = jt.zeros((N,features.shape[0],points_idx.shape[2],points_idx.shape[3]),
+        pt_cld = jt.zeros((N, features.shape[0], points_idx.shape[2], points_idx.shape[3]),
                           dtype='float')
         pt_cld.requires_grad = True
 
         (pt_cld,) = jt.code(inputs=[features, alphas, points_idx], outputs=[pt_cld],
-            cuda_header='#include "alpha_composite.h"',cuda_src=f'''
+                            cuda_header='#include "alpha_composite.h"', cuda_src=f'''
             @alias(features, in0)
             @alias(alphas, in1)
             @alias(pointsidx, in2)
@@ -63,35 +59,21 @@ class _CompositeAlphaPoints(Function):
         self.features = features
         self.alphas = alphas
         self.point_idx = points_idx
-        
+
         return pt_cld
 
-
-<<<<<<< HEAD
     # 目标变量是
-=======
->>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
     def grad(self, grad_output):
         '''
         grad_feature:[]
         grad_alphas:[]
         '''
-<<<<<<< HEAD
         features = self.features
         alphas = self.alphas
         points_idx = self.point_idx
         N = points_idx.shape[0]  # num rays
         grad_features = jt.zeros_like(features)
         grad_alphas = jt.zeros_like(alphas)
-=======
-        features = self.features   #[19,1294080]
-        alphas = self.alphas       #[1,8,800,800]
-        points_idx = self.point_idx  #[1,8,800,800]
-        N = points_idx.shape[0]  # num rays
-        grad_features = jt.zeros_like(features)
-        grad_alphas = jt.zeros_like(alphas)
-        
->>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
 
         (grad_features, grad_alphas) = jt.code(
             inputs=[grad_output, features, alphas, points_idx],
@@ -104,16 +86,12 @@ class _CompositeAlphaPoints(Function):
             @alias(pointsidx, in3)
             @alias(grad_features, out0)
             @alias(grad_alphas, out1)
-            
-<<<<<<< HEAD
+
             static constexpr int64_t batch_size = {N};
-=======
-            static constexpr int64_t batch_size = {N}; 
->>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
-            
+
             const dim3 threadsPerBlock(64);
             const dim3 numBlocks(batch_size, 1024 / batch_size + 1);
-            
+
             alphaCompositeCudaBackwardKernel<<<numBlocks, threadsPerBlock>>>(                
                 PackedVar32<float,4>(grad_outputs),
                 PackedVar32<float,2>(features),
@@ -126,13 +104,6 @@ class _CompositeAlphaPoints(Function):
         )
         grad_features.compile_options = {
             f"FLAGS: -I{proj_path}": 1}
-<<<<<<< HEAD
-=======
-        
-        #print("grad_features_shape", grad_features.shape)  #[19,1294080]
-        #print("grad_alphas_shape", grad_alphas.shape)      #[1,8,800,800]
-        
->>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
         return None, grad_alphas, grad_features
 
 
