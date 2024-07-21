@@ -537,10 +537,7 @@ class NeRFRenderer(nn.Module):
             normal = jt.zeros(N, 3, dtype=dtype)
             n_alive = N
             rays_alive = jt.arange(n_alive, dtype=jt.int32) # [N]
-<<<<<<< HEAD
 
-=======
->>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
             rays_t = nears.clone() # [N]
             step = 0
             while step < max_steps: # hard coded max step
@@ -552,7 +549,6 @@ class NeRFRenderer(nn.Module):
                 # decide compact_steps
                 n_step = max(min(N // n_alive, 8), 1)
                 xyzs, dirs, deltas = raymarching.march_rays(n_alive, n_step, rays_alive, rays_t, rays_o, rays_d, self.bound, self.density_bitfield, self.cascade, self.grid_size, nears, fars, 128, perturb if step == 0 else False, dt_gamma, max_steps)
-<<<<<<< HEAD
                 sigmas, rgbs, normals = self(xyzs, dirs, light_d, is_grad=False, ratio=ambient_ratio, shading=shading)  # syh: 问题莫不是在这儿？
                 normals = (normals + 1) / 2
 
@@ -561,13 +557,6 @@ class NeRFRenderer(nn.Module):
 
                 rays_alive=rays_alive[rays_alive>=0]
 
-=======
-                sigmas, rgbs, normals = self(xyzs, dirs, light_d, is_grad=False, ratio=ambient_ratio, shading=shading)
-                # normals = (normals + 1) / 2
-                normals = rgbs# jt.zeros_like(rgbs, dtype=jt.float32)
-                raymarching.composite_rays(n_alive, n_step, rays_alive, rays_t, sigmas, rgbs, normals, deltas, weights_sum, depth, image, normal, T_thresh)
-                rays_alive=rays_alive[rays_alive>=0]
->>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
                 step += n_step
 
         # mix background color
