@@ -90,11 +90,7 @@ class StableDiffusion(nn.Module):
         # self.device = device
         self.sd_version = sd_version
         if (self.sd_version == '2.0'):
-<<<<<<< HEAD
-            model_key = '/home/huteng/.cache/huggingface/hub/models--stabilityai--stable-diffusion-2-base/snapshots/fa386bb446685d8ad8a8f06e732a66ad10be6f47'
-=======
             model_key = './sd2'
->>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
         elif (hf_key is not None):
             print(f'[INFO] using hugging face custom model key: {hf_key}')
             model_key = hf_key
