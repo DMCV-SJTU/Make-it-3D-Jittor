@@ -1,21 +1,14 @@
 import os
 import glob
 import sys
-<<<<<<< HEAD
 
-=======
-import torch
->>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
 import tqdm
 import math
 import imageio
 import random
 import warnings
 # import tensorboardX
-<<<<<<< HEAD
 
-=======
->>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
 import numpy as np
 import pandas as pd
 
@@ -305,11 +298,7 @@ class Trainer(object):
         self.device = device
 
         self.console = Console()
-<<<<<<< HEAD
         self.clip_model, self.clip_preprocess = clip.load("clip-b-16/ViT-B-16.pkl")
-=======
-        self.clip_model, self.clip_preprocess = clip.load("/home/huteng/xception/Make-it-3D-Jittor-master/ViT-B-16.pkl")
->>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
         self.ref_imgs = ref_imgs
         self.ori_imgs = ori_imgs
         self.depth_prediction = ref_depth
@@ -564,10 +553,6 @@ class Trainer(object):
         pred_rgb = outputs['image'].reshape(B, H, W, 3).permute(0, 3, 1, 2).contiguous()  # [1, 3, H, W]
         pred_depth = outputs['depth'].reshape(B, H, W, 1).permute(0, 3, 1, 2).contiguous()  # [1, 1, H, W]
         pred_ws = outputs['weights_sum'].reshape(B, 1, H, W)
-<<<<<<< HEAD
-=======
-        # loss_ = pred_ws.mean()
->>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
         if data['is_large']:
             text_z = self.text_z[1]
             text = self.text[1]
@@ -629,12 +614,8 @@ class Trainer(object):
             loss_ref = self.opt.lambda_clip * self.img_clip_loss(pred_rgb,
                                                                  gt_rgb) + self.opt.lambda_clip * self.img_text_clip_loss(
                 pred_rgb, text)
-<<<<<<< HEAD
 
         if self.global_step % 100 == 0 or self.global_step == 1:
-=======
-        if self.global_step % 10 == 0 or self.global_step == 1:
->>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
             jt.save_image(pred_rgb[0], os.path.join(self.img_path, f'{self.global_step}.png'))
             jt.save_image(gt_rgb[0], os.path.join(self.img_path, f'{self.global_step}_gt.png'))
             jt.save_image(pred_depth[0].repeat(3, 1, 1), os.path.join(self.img_path, f'{self.global_step}_depth.png'))
@@ -723,10 +704,7 @@ class Trainer(object):
         start_t = time.time()
 
         for epoch in range(self.epoch + 1, max_epochs + 1):
-<<<<<<< HEAD
 
-=======
->>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
             self.epoch = epoch
             self.train_one_epoch(train_loader)
 
@@ -900,11 +878,6 @@ class Trainer(object):
         vertices_cano.requires_grad = False
         vertices_novel = jt.array(vertices_novel)
         vertices_novel.requires_grad = False
-<<<<<<< HEAD
-=======
-        vertices_color_cano = jt.array(vertices_color_cano)
-        vertices_color_cano.requires_grad = False
->>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
 
         feat_cano = jt.randn((vertices_color_cano.shape[0], 16))
         feat_cano.requires_grad = True
@@ -926,10 +899,7 @@ class Trainer(object):
                                      + unet.parameters(), 0.001, betas=(0.9, 0.99), eps=1e-15)
 
         max_pool = jt.nn.MaxPool2d(kernel_size=5, stride=1, padding=2)
-<<<<<<< HEAD
         
-=======
->>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
 
         pbar = tqdm.tqdm(range(train_iters))
         for i in pbar:
@@ -954,13 +924,8 @@ class Trainer(object):
                 image_size = (h, w)
                 K_ = np.array([[focal * w, 0, 0.5 * w], [0, focal * h, 0.5 * h], [0, 0, 1]])
                 K_ = jt.array((K_)).float()
-<<<<<<< HEAD
                 pred_rgb = render_point(all_v, all_v_color, h, w, K_, world2cam, image_size, radius, ppp)
 
-=======
-                pred_rgb = render_point(all_v, all_v_color, h, w, K_, world2cam, image_size, radius, ppp,
-                                        bg_feat=bg_feat, debug=False)
->>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
                 scale = scale * 2
                 pred_list.append(pred_rgb)
             pred_rgb = unet(pred_list)
@@ -979,18 +944,10 @@ class Trainer(object):
                 clip_loss = 1000 * self.img_loss(pred_rgb * gt_mask, gt_rgb * gt_mask)
                 bg_loss = 0
             else:
-<<<<<<< HEAD
                 clip_loss, de_imgs = self.guidance.train_step(text_z, pred_rgb, clip_model=self.clip_model,
                                                               ref_text=ref_text, islarge=False, ref_rgb=gt_rgb,
                                                               guidance_scale=5)
 
-=======
-                clip_loss, de_imgs = self.guidance.train_step(text_z, pred_rgb, clip_text_model=self.clip_text_model,
-                                                              image_encoder=self.image_encoder,
-                                                              tokenizer=self.tokenizer,
-                                                              ref_text=ref_text, islarge=False, ref_rgb=gt_rgb,
-                                                              guidance_scale=5)
->>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
                 clip_loss += 10 * self.img_clip_loss(pred_rgb, gt_rgb)
                 cx_loss = self.img_cx_loss(cx_model, pred_rgb, gt_rgb)
                 clip_loss += cx_loss
@@ -999,10 +956,7 @@ class Trainer(object):
             bg_loss = 1e-3 * (1 - pred_rgb * (1 - pred_mask_dilate)).sum()
             reg_loss = jt.nn.MSELoss()(vertices_color_novel, vertices_color_novel_origin) * 1e3 + jt.nn.MSELoss()(
                 vertices_color_cano, vertices_color_cano_origin) * 1e5
-<<<<<<< HEAD
 
-=======
->>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
             loss = clip_loss + reg_loss + bg_loss
 
             pbar.set_description(
@@ -1037,10 +991,7 @@ class Trainer(object):
 
         # test
         print("###### Finel Refine Rendering ######")
-<<<<<<< HEAD
 
-=======
->>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
         pbar = tqdm.tqdm(total=len(test_loader) * test_loader.batch_size,
                          bar_format='{percentage:3.0f}% {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]')
         for i, data in enumerate(test_loader):
@@ -1055,10 +1006,7 @@ class Trainer(object):
                 image_size = (h, w)
                 K_ = np.array([[focal * w, 0, 0.5 * w], [0, focal * h, 0.5 * h], [0, 0, 1]])
                 K_ = jt.array((K_)).float()
-<<<<<<< HEAD
 
-=======
->>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
                 pred_rgb = render_point(all_v, all_v_color, h, w, K_, world2cam, image_size, radius, ppp,
                                         bg_feat=bg_feat)
                 scale = scale * 2
@@ -1267,10 +1215,7 @@ class Trainer(object):
             if idx == 3:
                 checkpoint_dict['model'][key] = params.uint8()
 
-<<<<<<< HEAD
 
-=======
->>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
         self.model.load_state_dict(checkpoint_dict['model'])
         self.log("[INFO] loaded model.")
         if self.ema is not None and 'ema' in checkpoint_dict:
