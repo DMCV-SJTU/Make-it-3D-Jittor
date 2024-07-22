@@ -42,7 +42,7 @@ We provide [Jittor](https://github.com/Jittor/jittor) implementations for our pa
 ## Installation
 
 ### 1. Download jittor-related libraries
-Please download the required folds from [here](https://drive.google.com/drive/folders/16vN86aBc1XLsbIHL0tMpgX9jcgyUdrir?usp=drive_link) The directory structure of downloaded fold is as following:
+Please download the required folders from [here](https://drive.google.com/drive/folders/16vN86aBc1XLsbIHL0tMpgX9jcgyUdrir?usp=drive_link) The directory structure of downloaded folder is as following:
 ```
 makeit3d_requirement/
 │
@@ -72,11 +72,11 @@ makeit3d_requirement/
 └── ...
 ```
 ### 2. Compile the jittor-related libraries.
-After getting the ```makeit3d_requirement``` fold, you need to compile all of them. Please run the following command in the same directory as setup.py file in each libraries mentioned above:
+After obtaining the ```makeit3d_requirement``` folder, you need to compile all of them. Please run the following command in the same directory as the setup.py file in each of the libraries mentioned above:
 ```
 pip install -e .
 ```
-Note: Due to the dependencies between the components, it is best to compile in the order shown in the above diagram.
+Note: Due to the dependencies between the components, it is best to compile in the order shown in above diagram.
 
 ### 3. Install other dependencies 
 Other dependencies:
@@ -92,11 +92,11 @@ pip install -r requirements.txt
 
 ## Training 
 ### Coarse stage
-We use progressive training strategy to generate a full 360° 3D geometry. Run the command and modify the workspace name `NAME`, the path of the reference image `IMGPATH` and the prompt `PROMPT` describing the image . We first optimize the scene under frontal camera views. 
+We use progressive training strategy to generate a full 360° 3D geometry. Run the command and modify the workspace name `NAME`, the path of the reference image `IMGPATH` and the prompt `PROMPT` describing the image. We first optimize the scene under frontal camera views. 
 ```
 python main.py --workspace ${NAME} --ref_path "${IMGPATH}" --phi_range 135 225 --iters 2000 --text ${PROMPT}
 ``` 
-We have proposed the example fold in the fold ```results```, you can run the following command for a quick start:
+We have proposed the example in the folder ```results```, you can run the following command for a quick start:
 ```
 python main.py --workspace teddy --ref_path demo/teddy.png --phi_range 135 225 --iters 2000 --text "a teddy bear"
 ```
@@ -104,7 +104,7 @@ python main.py --workspace teddy --ref_path demo/teddy.png --phi_range 135 225 -
 ```
 python main.py --workspace teddy2 --ref_path demo/teddy-2.png --phi_range 135 225 --iters 2000 --text "a teddy bear"
 ```
-- If you want to run Make-It-3D  on your own example, please make sure to get depth map and mask according to the guidance in [preprocess](preprocess/README.md) before performing the training process.
+- If you want to run Make-It-3D  on your own examples, ensure you have obtained the depth map and mask by following the guidance in [preprocess](preprocess/README.md) before your training.
 
 - We also provide a vanilla nerf for makeit3d:
 ```
