@@ -108,7 +108,7 @@ python main.py --workspace teddy2 --ref_path demo/teddy-2.png --phi_range 135 22
 
 - We also provide a vanilla nerf for makeit3d:
 ```
-python main.py --workspace ${NAME} --ref_path "${IMGPATH}" --phi_range 135 225  --backbone vanila --iters 10000 --text ${PROMPT}
+python main.py --workspace ${NAME} --ref_path "${IMGPATH}" --phi_range 135 225  --backbone vanilla --iters 10000 --text ${PROMPT}
 ```
 
 ### Refine stage
@@ -116,28 +116,11 @@ After the coarse stage training, now you can easily use the command ```--refine`
 ```
 python main.py --workspace ${NAME} --ref_path "${IMGPATH}" --phi_range 135 225 --refine_iters 3000  --refine 
 ```
-We have proposed an example for refine stage. Before the refine stage training, you should download [following examples](https://drive.google.com/drive/folders/1hy88cet39yYM_WjF94b3rHF4XCrpgH6m?usp=sharing) into your workspace. Make sure the downloaded files are placed in the following directory structure: 
-```
-Make-It-3D/
-│
-├── results/
-│   ├── $WORKSPACE_NAME$/
-│   │    ├── mvimg/
-|   |       ├── df_epxxx_000_depth.png
-│   │       ├── df_epxxx_000_mask.png
-│   │       ├── df_epxxx_000_normal.png
-│   │       ├── df_epxxx_000_rgb.png
-|   |       ├── df_epxxx_poses.npy
-│   │       └── ...  
-│   │    ├── refine/
-│   └── ...
-└── ...
-```
+We have proposed an example for refine stage. Before the refine stage training, you should download [pretrained checkpoint](https://drive.google.com/drive/folders/1hy88cet39yYM_WjF94b3rHF4XCrpgH6m?usp=sharing) into your workspace. 
 
-#### Teddy bear
 You can easily refine this teddy bear texture as following guidance:
 ```
-python main.py --workspace ${WORKSPACE_NAME} --ref_path "demo/teddy.png" --phi_range 0 90 --fovy_range 50 70 --fov 60 --refine --refine_iter 3000 --text "a teddy bear"
+python main.py --workspace teddy --ref_path "demo/teddy.png" --refine --refine_iter 3000 --iters 2000 --text "a teddy bear"
 ```
 
 ---
