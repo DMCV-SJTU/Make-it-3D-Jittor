@@ -74,7 +74,7 @@ __global__ void alphaCompositeCudaForwardKernel(
 
       atomicAdd(
           &result[batch][ch][j][i], features[ch][n_idx] * cum_alpha * alpha);
-      
+
       cum_alpha = cum_alpha * (1 - alpha);
     }
   }
@@ -91,18 +91,10 @@ __global__ void alphaCompositeCudaBackwardKernel(
     PackedVar32<float, 2> __restrict__ grad_features,
     PackedVar32<float, 4> __restrict__  grad_alphas) {
   // clang-format on
-<<<<<<< HEAD
   const int64_t batch_size = points_idx.size(0);
   const int64_t C = features.size(0);
   const int64_t H = points_idx.size(2);
   const int64_t W = points_idx.size(3);
-=======
-  const int64_t batch_size = points_idx.size(0);  // 1
-  const int64_t C = features.size(0);   // 19?
-  const int64_t H = points_idx.size(2);  // 800
-  const int64_t W = points_idx.size(3);  // 800
-
->>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
 
   // Get the batch and index
   const int batch = blockIdx.x;
@@ -111,30 +103,6 @@ __global__ void alphaCompositeCudaBackwardKernel(
   const int num_threads = gridDim.y * blockDim.x;
   const int tid = blockIdx.y * blockDim.x + threadIdx.x;
 
-<<<<<<< HEAD
-=======
-  // if(tid==0)
-  // {
-  //   printf("调用backward kernel\n");
-  // }
-
-
-  // if(tid==39550)
-  // {
-  //   for (int pid = tid; pid < num_pixels; pid += num_threads) {
-  //     int ch = pid / (H * W);
-  //     int j = (pid % (H * W)) / W;
-  //     int i = (pid % (H * W)) % W;
-  //     if (isnan(grad_outputs[batch][ch][j][i])) {
-  //       printf("检查到grad_outputs[batch][ch][j][i]为nan%lld,%lld\n",W,H);
-  //       return;
-  //     }
-  //   }
-  // }
-
-
-
->>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
   // Parallelize over each feature in each pixel in images of size H * W,
   // for each image in the batch of size batch_size
   for (int pid = tid; pid < num_pixels; pid += num_threads) {
@@ -157,10 +125,6 @@ __global__ void alphaCompositeCudaBackwardKernel(
       // TODO(gkioxari) It might be more efficient to have threads write in a
       // local variable, and move atomicAdd outside of the loop such that
       // atomicAdd is executed once per thread.
-<<<<<<< HEAD
-=======
-
->>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
       atomicAdd(
           &grad_alphas[batch][k][j][i],
           cum_alpha * features[ch][n_idx] * grad_outputs[batch][ch][j][i]);
@@ -168,10 +132,6 @@ __global__ void alphaCompositeCudaBackwardKernel(
           &grad_features[ch][n_idx],
           cum_alpha * alpha * grad_outputs[batch][ch][j][i]);
 
-<<<<<<< HEAD
-=======
-
->>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
       // Iterate over all (K-1) nearest points to update gradient
       for (int t = 0; t < k; ++t) {
         int t_idx = points_idx[batch][t][j][i];
@@ -190,19 +150,6 @@ __global__ void alphaCompositeCudaBackwardKernel(
       }
 
       cum_alpha = cum_alpha * (1 - alphas[batch][k][j][i]);
-<<<<<<< HEAD
     }
   }
-=======
-
-
-      // if(tid==39550&&(pid-tid)==0)
-      // {
-      //   printf("grad_features[%d][%d]: %f\n", ch, n_idx, grad_features[ch][n_idx]);
-      // }
-    }
-  }
-
-
->>>>>>> bdddbb67109f4d2aacc3e72e0ff832a771dbb514
 }
