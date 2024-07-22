@@ -85,7 +85,7 @@ pip install -r requirements.txt
 ```
 ### 4. Download the pre-trained model
 - [Stable Diffusion 2.0](https://huggingface.co/stabilityai/stable-diffusion-2-base/tree/main) You can dowlond the [weights](https://huggingface.co/stabilityai/stable-diffusion-2-base/tree/main) for sd2 into the sd2 folder.
-- [clip-b16](https://huggingface.co/openai/clip-vit-base-patch16/tree/main) You can dowlond the [weights](https://huggingface.co/openai/clip-vit-base-patch16/tree/main) for clip into the clip-b16 folder.
+- [clip-b16](https://huggingface.co/openai/clip-vit-base-patch16/tree/main) You can dowlond the [weights](https://drive.google.com/file/d/1yn9y0PYijfVhI7XJvJPMzQKYq3YvW9Yq/view?usp=drive_link) for clip into the clip-b16 folder.
 
 ---
 
