@@ -116,7 +116,7 @@ After the coarse stage training, now you can easily use the command ```--refine`
 ```
 python main.py --workspace ${NAME} --ref_path "${IMGPATH}" --phi_range 135 225 --refine_iters 3000  --refine 
 ```
-We have proposed an example for refine stage. Before the refine stage training, you should download [pretrained checkpoint](https://drive.google.com/drive/folders/1hy88cet39yYM_WjF94b3rHF4XCrpgH6m?usp=sharing) into your workspace. 
+We have proposed an example for refine stage. Before the refine stage training, you should download [pretrained checkpoint](https://drive.google.com/drive/folders/12vciQ1_y-icxVU-_lV4psvIKVd01AOQy?usp=drive_link) into your workspace. 
 
 You can easily refine this teddy bear texture as following guidance:
 ```
