@@ -42,7 +42,7 @@ We provide [Jittor](https://github.com/Jittor/jittor) implementations for our pa
 ## Installation
 
 ### 1. Download jittor-related libraries
-Please download the requirement folds from [here](https://drive.google.com/drive/folders/16vN86aBc1XLsbIHL0tMpgX9jcgyUdrir?usp=drive_link) The directory structure of downloaded fold is as following:
+Please download the required folds from [here](https://drive.google.com/drive/folders/16vN86aBc1XLsbIHL0tMpgX9jcgyUdrir?usp=drive_link) The directory structure of downloaded fold is as following:
 ```
 makeit3d_requirement/
 │
