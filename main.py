@@ -2,8 +2,6 @@ import argparse
 
 import jittor as jt
 import jittor.transform as T
-import torch
-import torchvision.transforms as TT
 from jittor import optim
 from jittor import Function as F
 from jittor import lr_scheduler
