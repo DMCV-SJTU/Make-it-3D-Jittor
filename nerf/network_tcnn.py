@@ -2,7 +2,7 @@ import sys
 
 import jittor as jt
 import jittor.nn as nn
-import torch
+
 from jittor import Function as F
 
 from activation import trunc_exp
