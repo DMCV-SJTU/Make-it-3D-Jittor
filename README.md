@@ -66,6 +66,10 @@ makeit3d_requirement/
 │   ├── setup.py
 │   └── ...
 |
+├── transformers_jittor/
+│   ├── setup.py
+│   └── ...
+|
 ├── JNeRF/
 │   ├── setup.py
 │   └── ...
