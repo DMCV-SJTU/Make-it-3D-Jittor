@@ -43,7 +43,6 @@ We provide [Jittor](https://github.com/Jittor/jittor) implementations for our pa
 ### 1. Requirements
 - **An NVIDIA GPU**. All shown results come from an RTX 4090.
 - A **C++14** capable compiler. The following choices are recommended and have been tested:
-  - Windows: Visual Studio 2019 or 2022
   - Linux: GCC/G++ 8 or higher
 -  **Python**. python 3.9 is recommended.
 ### 2. Download jittor-related libraries
