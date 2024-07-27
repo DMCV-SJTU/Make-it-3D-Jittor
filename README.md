@@ -40,8 +40,13 @@ We provide [Jittor](https://github.com/Jittor/jittor) implementations for our pa
 ---
 
 ## Installation
-
-### 1. Download jittor-related libraries
+### 1. Requirements
+- **An NVIDIA GPU**. All shown results come from an RTX 4090.
+- A **C++14** capable compiler. The following choices are recommended and have been tested:
+  - Windows: Visual Studio 2019 or 2022
+  - Linux: GCC/G++ 8 or higher
+-  **Python**. python 3.9 is recommended.
+### 2. Download jittor-related libraries
 Please download the required folders from [here](https://drive.google.com/drive/folders/16vN86aBc1XLsbIHL0tMpgX9jcgyUdrir?usp=drive_link) The directory structure of downloaded folder is as following:
 ```
 makeit3d_requirement/
@@ -75,19 +80,19 @@ makeit3d_requirement/
 │   └── ...
 └── ...
 ```
-### 2. Compile the jittor-related libraries.
+### 3. Compile the jittor-related libraries.
 After obtaining the ```makeit3d_requirement``` folder, you need to compile all of them. Please run the following command in the same directory as the setup.py file in each of the libraries mentioned above:
 ```
 pip install -e .
 ```
 Note: Due to the dependencies between the components, it is best to compile in the order shown in above diagram.
 
-### 3. Install other dependencies 
+### 4. Install other dependencies 
 Other dependencies:
 ```
 pip install -r requirements.txt
 ```
-### 4. Download the pre-trained model
+### 5. Download the pre-trained model
 - [Stable Diffusion 2.0](https://huggingface.co/stabilityai/stable-diffusion-2-base/tree/main) You can dowlond the [weights](https://huggingface.co/stabilityai/stable-diffusion-2-base/tree/main) for sd2 into the sd2 folder.
 - [clip-b16](https://huggingface.co/openai/clip-vit-base-patch16/tree/main) You can dowlond the [weights](https://drive.google.com/file/d/1yn9y0PYijfVhI7XJvJPMzQKYq3YvW9Yq/view?usp=drive_link) for clip into the clip-b16 folder.
 
